@@ -10,6 +10,7 @@ export interface Task {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  startTime?: string;
   skippedReason?: string;
 }
 

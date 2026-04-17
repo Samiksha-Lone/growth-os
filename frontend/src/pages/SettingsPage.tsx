@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { useToast } from '../components/ui/ToastProvider';
+import toast from 'react-hot-toast';
 import { updateProfile, deleteProfile, uploadAvatar, fetchProfile } from '../api/growthos';
 import { getFullAvatarUrl } from '../lib/utils';
 
 export default function SettingsPage() {
   const { userName, userEmail, githubUrl, linkedinUrl, portfolioUrl, avatarUrl, updateUser, signOut } = useAuth();
-  const { pushToast } = useToast();
   
   const [profile, setProfile] = useState({
     firstName: (userName?.split(' ')[0]) || 'User',
@@ -48,9 +47,9 @@ export default function SettingsPage() {
         avatarUrl: avatarUrl || ''
       });
       
-      pushToast('Profile updated');
+      toast.success('Profile updated');
     } catch (error) {
-      pushToast('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -61,7 +60,7 @@ export default function SettingsPage() {
     if (!file) return;
 
     if (file.size > 1024 * 1024) {
-      pushToast('File is too large (max 1MB)');
+      toast.error('File is too large (max 1MB)');
       return;
     }
 
@@ -69,9 +68,9 @@ export default function SettingsPage() {
     try {
       const updatedUser = await uploadAvatar(file);
       updateUser({ avatarUrl: updatedUser.avatarUrl });
-      pushToast('Avatar updated');
+      toast.success('Avatar updated');
     } catch (error) {
-      pushToast('Failed to upload avatar');
+      toast.error('Failed to upload avatar');
     } finally {
       setUploading(false);
     }
@@ -81,10 +80,10 @@ export default function SettingsPage() {
     if (window.confirm('CRITICAL: This will permanently delete your GrowthOS account and all associated data. Are you absolutely sure?')) {
       try {
         await deleteProfile();
-        pushToast('Account deleted');
+        toast.success('Account deleted');
         signOut();
       } catch (error) {
-        pushToast('Failed to delete account');
+        toast.error('Failed to delete account');
       }
     }
   };

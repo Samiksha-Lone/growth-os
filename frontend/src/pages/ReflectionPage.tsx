@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createReflection, fetchReflections } from '../api/growthos';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { useToast } from '../components/ui/ToastProvider';
+import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
+import { Modal } from '../components/ui/Modal';
 import type { Reflection } from '../lib/types';
 
 export default function ReflectionPage() {
@@ -13,13 +14,13 @@ export default function ReflectionPage() {
   const [learnings, setLearnings] = useState('');
   const [mood, setMood] = useState(2); // 1: 😞, 2: 😐, 3: 🙂
   const [productivityScore, setProductivityScore] = useState(8);
+  const [selectedReflection, setSelectedReflection] = useState<Reflection | null>(null);
   
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery<Reflection[]>({
     queryKey: ['reflection', 'list'],
     queryFn: fetchReflections
   });
-  const { pushToast } = useToast();
 
   const addMutation = useMutation({
     mutationFn: createReflection,
@@ -30,7 +31,7 @@ export default function ReflectionPage() {
       setLearnings('');
       setMood(2);
       setProductivityScore(8);
-      pushToast('Reflection saved');
+      toast.success('Reflection saved');
     }
   });
 
@@ -132,7 +133,12 @@ export default function ReflectionPage() {
             {isLoading ? (
                <Skeleton height="300px" />
             ) : data?.slice(0, 5).map((entry) => (
-              <div key={entry._id} className="compact-card" style={{ border: '1px solid #1a1a1a', background: 'transparent', transition: 'all 0.2s ease', cursor: 'pointer' }}>
+              <div 
+                key={entry._id} 
+                className="compact-card" 
+                style={{ border: '1px solid #1a1a1a', background: 'transparent', transition: 'all 0.2s ease', cursor: 'pointer' }}
+                onClick={() => setSelectedReflection(entry)}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>
@@ -151,6 +157,59 @@ export default function ReflectionPage() {
           </div>
         </div>
       </div>
+
+      <Modal 
+        open={!!selectedReflection} 
+        onClose={() => setSelectedReflection(null)}
+        title={selectedReflection ? new Date(selectedReflection.date).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+      >
+        {selectedReflection && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#0a0a0a', borderRadius: '16px', border: '1px solid #222' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 <div style={{ fontSize: '1.5rem', background: '#1a1a1a', padding: '8px', borderRadius: '12px' }}>
+                   {selectedReflection.mood === 1 ? '😞' : selectedReflection.mood === 2 ? '😐' : '🙂'}
+                 </div>
+                 <div style={{ display: 'flex', flexDirection: 'column' }}>
+                   <span style={{ fontSize: '0.7rem', color: '#555', fontWeight: 700, textTransform: 'uppercase' }}>Daily Mood</span>
+                   <span style={{ fontWeight: 600 }}>{selectedReflection.mood === 1 ? 'Challenging' : selectedReflection.mood === 2 ? 'Neutral' : 'Positive'}</span>
+                 </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#3a86ff' }}>{selectedReflection.productivityScore}/10</div>
+                 <div style={{ fontSize: '0.7rem', color: '#555', fontWeight: 700, textTransform: 'uppercase' }}>Productivity</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+               <div>
+                 <h4 style={{ fontSize: '0.8rem', color: '#06d6a0', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>What went well?</h4>
+                 <p style={{ color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, padding: '12px', background: '#0a0a0a', borderRadius: '10px', borderLeft: '3px solid #06d6a0' }}>
+                   {selectedReflection.goodThings.join('\n') || 'N/A'}
+                 </p>
+               </div>
+
+               <div>
+                 <h4 style={{ fontSize: '0.8rem', color: '#ef476f', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>What went wrong?</h4>
+                 <p style={{ color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, padding: '12px', background: '#0a0a0a', borderRadius: '10px', borderLeft: '3px solid #ef476f' }}>
+                   {selectedReflection.badThings.join('\n') || 'N/A'}
+                 </p>
+               </div>
+
+               <div>
+                 <h4 style={{ fontSize: '0.8rem', color: '#ffd166', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>Learnings</h4>
+                 <p style={{ color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, padding: '12px', background: '#0a0a0a', borderRadius: '10px', borderLeft: '3px solid #ffd166' }}>
+                   {selectedReflection.learnings.join('\n') || 'N/A'}
+                 </p>
+               </div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+               <Button onClick={() => setSelectedReflection(null)} style={{ background: '#1d1d1d', border: '1px solid #2a2a2a', color: '#fff', padding: '10px 20px' }}>Close</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

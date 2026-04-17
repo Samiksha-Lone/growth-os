@@ -42,62 +42,74 @@ export function Sidebar() {
   const { signOut, userEmail, githubUrl, linkedinUrl, portfolioUrl } = useAuth();
 
   return (
-    <aside className="sidebar">
-      <div className="brand-block">
-        <div className="brand-mark">
+    <aside className="bg-card border-r border-border p-6 flex flex-col gap-8 sticky top-0 h-screen w-[280px] overflow-y-auto">
+      <div className="flex items-center gap-4">
+        <div className="w-11 h-11 border border-border grid place-items-center rounded-2xl bg-transparent">
           <Logo />
         </div>
         <div>
-          <div className="brand-title">GrowthOS</div>
-          <div className="brand-subtitle">Focus system</div>
+          <div className="text-lg font-semibold text-primary">GrowthOS</div>
+          <div className="text-secondary text-sm">Focus system</div>
         </div>
       </div>
 
-      <nav className="sidebar-nav">
-        <div className="nav-group">
+      <nav className="space-y-2.5">
+        <div className="space-y-2.5">
           {mainLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `nav-link ${isActive ? 'active-link' : ''}`
+                `block px-4 py-3 rounded-2xl text-primary text-sm transition-all duration-200 ease-out border ${isActive ? 'bg-gray-800 border-border' : 'border-transparent hover:bg-gray-800 hover:border-border'}`
               }
             >
-              <span className="nav-icon">{link.icon}</span>
-              <span className="nav-label">{link.label}</span>
+              {({ isActive }) => (
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center transition-colors duration-200 ${isActive ? 'text-accent' : 'text-secondary'}`}>
+                    {link.icon}
+                  </span>
+                  <span>{link.label}</span>
+                </div>
+              )}
             </NavLink>
           ))}
         </div>
 
-        <div className="nav-group" style={{ marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid #1a1a1a' }}>
+        <div className="space-y-2.5 pt-4 border-t border-border">
           {utilityLinks.map((link) => (
             <NavLink
               key={link.label}
               to={link.to}
               className={({ isActive }) =>
-                `nav-link ${isActive && link.to !== '#' ? 'active-link' : ''}`
+                `block px-4 py-3 rounded-2xl text-primary text-sm transition-all duration-200 ease-out border ${isActive ? 'bg-gray-800 border-border' : 'border-transparent hover:bg-gray-800 hover:border-border'}`
               }
             >
-              <span className="nav-icon">{link.icon}</span>
-              <span className="nav-label">{link.label}</span>
+              {({ isActive }) => (
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center transition-colors duration-200 ${isActive ? 'text-accent' : 'text-secondary'}`}>
+                    {link.icon}
+                  </span>
+                  <span>{link.label}</span>
+                </div>
+              )}
             </NavLink>
           ))}
         </div>
 
         {(githubUrl || linkedinUrl || portfolioUrl) && (
-          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #1a1a1a', display: 'flex', gap: '16px', justifyContent: 'center' }}>
+          <div className="mt-auto pt-6 border-t border-border flex items-center gap-4 justify-center">
             {githubUrl && (
-              <a href={githubUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#444', transition: 'color 0.2s ease', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#444'}>
+              <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-secondary transition-colors duration-200 hover:text-primary inline-flex">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path></svg>
               </a>
             )}
             {linkedinUrl && (
-              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#444', transition: 'color 0.2s ease', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#1266f1'} onMouseLeave={e => e.currentTarget.style.color = '#444'}>
+              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-secondary transition-colors duration-200 hover:text-primary inline-flex">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
               </a>
             )}
             {portfolioUrl && (
-              <a href={portfolioUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#444', transition: 'color 0.2s ease', display: 'flex' }} onMouseEnter={e => e.currentTarget.style.color = '#06d6a0'} onMouseLeave={e => e.currentTarget.style.color = '#444'}>
+              <a href={portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-secondary transition-colors duration-200 hover:text-primary inline-flex">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
               </a>
             )}

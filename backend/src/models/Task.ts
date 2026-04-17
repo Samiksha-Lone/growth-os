@@ -9,6 +9,7 @@ export interface ITask extends Document {
   date: Date;
   notes?: string;
   userId: mongoose.Types.ObjectId;
+  startTime?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +51,10 @@ const taskSchema = new Schema<ITask>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  startTime: {
+    type: String,
+    trim: true,
   },
 }, {
   timestamps: true,

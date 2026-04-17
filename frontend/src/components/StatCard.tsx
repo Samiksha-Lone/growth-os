@@ -14,11 +14,11 @@ export function StatCard({ title, value, description, progress, color = '#00bfff
   const denominator = parts.length > 1 ? ` / ${parts[1]}` : '';
 
   return (
-    <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '24px' }}>
-      <p className="stat-card-title" style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '16px', fontWeight: 500 }}>{title}</p>
+    <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '16px 18px' }}>
+      <p className="stat-card-title" style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '10px', fontWeight: 500 }}>{title}</p>
       
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%', marginBottom: '4px' }}>
-        <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>
+        <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>
           {mainValue}
           <span style={{ color: '#555', fontSize: '1.1rem', marginLeft: '4px' }}>{denominator}</span>
         </div>

@@ -22,6 +22,28 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   };
 }
 
+export async function fetchWeeklyChartData(): Promise<{ day: string; value: number }[]> {
+  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const today = new Date();
+  
+  const promises = days.map(async (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (6 - index)); // Start from 6 days ago
+    const dateStr = date.toISOString().split('T')[0];
+    
+    try {
+      const response = await api.get('/analytics/daily-completion', { 
+        params: { date: dateStr } 
+      });
+      return { day: days[index], value: response.data.completionRate || 0 };
+    } catch (error) {
+      return { day: days[index], value: 0 };
+    }
+  });
+  
+  return Promise.all(promises);
+}
+
 export async function fetchTasks(): Promise<Task[]> {
   const response = await api.get('/tasks');
   return response.data.tasks || [];
@@ -36,6 +58,7 @@ export async function createTask(taskData: Partial<Task>): Promise<Task> {
     status: taskData.status || 'Pending',
     date: taskData.date || new Date().toISOString(),
     notes: taskData.notes || '',
+    ...(taskData.startTime ? { startTime: taskData.startTime } : {}),
   };
 
   try {

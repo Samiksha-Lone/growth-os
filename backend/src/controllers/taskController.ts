@@ -11,6 +11,7 @@ const createTaskSchema = Joi.object({
   status: Joi.string().valid('Pending', 'In Progress', 'Completed', 'Missed').default('Pending'),
   date: Joi.date().default(() => new Date()).description('current date'),
   notes: Joi.string().allow('').default(''),
+  startTime: Joi.string().allow('').optional(),
 });
 
 const updateTaskSchema = Joi.object({
@@ -21,6 +22,7 @@ const updateTaskSchema = Joi.object({
   status: Joi.string().valid('Pending', 'In Progress', 'Completed', 'Missed'),
   date: Joi.date(),
   notes: Joi.string(),
+  startTime: Joi.string().allow('').optional(),
 });
 
 export class TaskController {
