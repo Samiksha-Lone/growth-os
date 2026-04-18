@@ -1,51 +1,42 @@
 import api from './axios';
-import type { DashboardStats, Habit, Insight, Reflection, RealitySummary, Task, UserProfile, PomodoroSession } from '../lib/types';
+import type { DashboardStats, Goal, Habit, Insight, Reflection, RealitySummary, Task, UserProfile, PomodoroSession } from '../lib/types';
 
-export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const today = new Date().toISOString().split('T')[0];
+export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
+  const dateStr = date || new Date().toLocaleDateString('en-CA');
   const [tasks, habits, focus] = await Promise.all([
-    api.get('/tasks', { params: { date: today } }),
+    api.get('/tasks', { params: { date: dateStr } }),
     api.get('/habits'),
-    api.get('/pomodoro/total-focus-time', { params: { startDate: today, endDate: today } }),
+    api.get('/pomodoro/total-focus-time', { params: { startDate: dateStr, endDate: dateStr } }),
   ]);
 
   const tasksData = tasks.data.tasks || [];
   const habitsData = habits.data.habits || [];
 
+  const completedTasks = tasksData.filter((t: Task) => t.status === 'Completed').length;
+  const completedHabits = habitsData.filter((h: Habit) => h.completedDates?.some(d => d.startsWith(dateStr))).length;
+
   return {
-    tasksToday: tasksData.filter((t: Task) => t.status === 'Completed').length,
+    tasksToday: completedTasks,
     tasksTotal: tasksData.length,
-    habitsDone: habitsData.filter((h: Habit) => h.completedDates?.some(d => d.startsWith(today))).length,
+    habitsDone: completedHabits,
     habitsTotal: habitsData.length,
     focusMinutes: focus.data.totalFocusTime || 0,
-    score: Math.min(100, Math.round((tasksData.length ?? 0) * 10 + (habitsData.length ?? 0) * 2)),
+    score: Math.min(100, Math.round((completedTasks * 15) + (completedHabits * 5))),
   };
 }
 
 export async function fetchWeeklyChartData(): Promise<{ day: string; value: number }[]> {
-  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const today = new Date();
-  
-  const promises = days.map(async (_, index) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() - (6 - index)); // Start from 6 days ago
-    const dateStr = date.toISOString().split('T')[0];
-    
-    try {
-      const response = await api.get('/analytics/daily-completion', { 
-        params: { date: dateStr } 
-      });
-      return { day: days[index], value: response.data.completionRate || 0 };
-    } catch (error) {
-      return { day: days[index], value: 0 };
-    }
-  });
-  
-  return Promise.all(promises);
+  try {
+    const response = await api.get('/analytics/weekly-trend');
+    return response.data || [];
+  } catch (error) {
+    console.error('Failed to fetch weekly trend:', error);
+    return [];
+  }
 }
 
-export async function fetchTasks(): Promise<Task[]> {
-  const response = await api.get('/tasks');
+export async function fetchTasks(date?: string): Promise<Task[]> {
+  const response = await api.get('/tasks', { params: { date } });
   return response.data.tasks || [];
 }
 
@@ -56,9 +47,8 @@ export async function createTask(taskData: Partial<Task>): Promise<Task> {
     category: taskData.category || 'Personal',
     priority: taskData.priority || 'Medium',
     status: taskData.status || 'Pending',
-    date: taskData.date || new Date().toISOString(),
+    date: taskData.date || new Date().toLocaleDateString('en-CA'),
     notes: taskData.notes || '',
-    ...(taskData.startTime ? { startTime: taskData.startTime } : {}),
   };
 
   try {
@@ -115,9 +105,10 @@ export async function fetchInsights(): Promise<Insight[]> {
   return insights;
 }
 
-export async function fetchRealitySummary(): Promise<RealitySummary> {
-  const response = await api.get('/reality-check');
-  return response.data;
+export async function fetchRealitySummary(date?: string): Promise<RealitySummary> {
+  const dateStr = date || new Date().toLocaleDateString('en-CA');
+  const response = await api.get('/reality-check', { params: { date: dateStr } });
+  return response.data.realityCheck || response.data; // Handle both nested and flat responses
 }
 
 export async function createHabit(name: string): Promise<Habit> {
@@ -125,8 +116,27 @@ export async function createHabit(name: string): Promise<Habit> {
   return response.data.habit;
 }
 
+export async function deleteHabit(habitId: string): Promise<void> {
+  await api.delete(`/habits/${habitId}`);
+}
+
+export async function fetchGoals(): Promise<Goal[]> {
+  const response = await api.get('/goals');
+  return response.data.goals || [];
+}
+
+export async function createGoal(goalData: Partial<Goal>): Promise<Goal> {
+  const response = await api.post('/goals', goalData);
+  return response.data.goal;
+}
+
+export async function deleteGoal(goalId: string): Promise<void> {
+  await api.delete(`/goals/${goalId}`);
+}
+
 export async function markHabitComplete(habitId: string): Promise<Habit> {
-  const response = await api.post(`/habits/${habitId}/complete`);
+  const localDate = new Date().toLocaleDateString('en-CA');
+  const response = await api.post(`/habits/${habitId}/complete`, { date: localDate });
   return response.data.habit;
 }
 

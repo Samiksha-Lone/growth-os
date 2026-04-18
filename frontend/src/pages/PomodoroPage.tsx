@@ -61,98 +61,93 @@ export default function PomodoroPage() {
   const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
   return (
-    <div className="page-stack">
-      <div className="section-header-row">
-        <h2 className="section-title" style={{ margin: 0 }}>Focus Timer</h2>
-        <span style={{ fontSize: '0.8rem', color: '#444', fontWeight: 600 }}>
-          {sessionsDone} session{sessionsDone !== 1 ? 's' : ''} completed today
-        </span>
+    <div className="page-stack !gap-8">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="title-main">Focus Timer</h1>
+          <span className="text-[0.65rem] text-secondary/30 font-black uppercase tracking-[3px]">{sessionsDone} session{sessionsDone !== 1 ? 's' : ''} completed today</span>
+        </div>
+        
+        {/* Session selector */}
+        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
+          {SESSIONS.map((s, i) => (
+            <button
+              key={s.label}
+              onClick={() => { setSessionIdx(i); }}
+              className={`px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${
+                 sessionIdx === i 
+                 ? 'bg-[#1a1a1a] text-white shadow-lg' 
+                 : 'bg-transparent text-secondary hover:text-white'
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Session selector */}
-      <div style={{ display: 'flex', gap: '8px', width: 'fit-content' }}>
-        {SESSIONS.map((s, i) => (
-          <button
-            key={s.label}
-            onClick={() => { setSessionIdx(i); }}
-            style={{
-              padding: '8px 18px', borderRadius: '8px',
-              background: sessionIdx === i ? '#1d1d1d' : 'transparent',
-              color: sessionIdx === i ? '#fff' : '#555',
-              border: sessionIdx === i ? '1px solid #2a2a2a' : '1px solid transparent',
-              fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer'
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Timer Card */}
-      <Card className="primary" style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px' }}>
-        {/* SVG Ring Timer */}
-        <div style={{ width: '170px', height: '170px', position: 'relative' }}>
-          <svg width="170" height="170" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#111" strokeWidth="3" />
-            <circle
-              cx="50" cy="50" r="46" fill="none"
-              stroke={currentSession.label === 'Focus' ? '#3a86ff' : '#06d6a0'}
-              strokeWidth="3"
-              strokeDasharray="289"
-              strokeDashoffset={289 - (289 * progress) / 100}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
-            />
-          </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-            <div style={{ fontSize: '2.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-1.5px', fontFamily: 'monospace' }}>
-              {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-            </div>
-            <div style={{ fontSize: '0.65rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>
-              {currentSession.label}
-            </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <Button
-            onClick={toggle}
-            style={{ padding: '10px 24px', background: isActive ? '#1a1a1a' : '#1d1d1d', border: '1px solid #2a2a2a', color: '#fff', minWidth: '100px', fontWeight: 700, fontSize: '0.9rem' }}
-          >
-            {isActive ? 'Pause' : timeLeft < totalSeconds ? 'Resume' : 'Start'}
-          </Button>
-          <Button
-            onClick={reset}
-            style={{ padding: '10px 20px', background: 'transparent', border: '1px solid #1a1a1a', color: '#444', minWidth: '80px', fontSize: '0.9rem' }}
-          >
-            Reset
-          </Button>
-        </div>
-
-        {/* Session info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '260px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#555', padding: '8px 12px', background: '#0a0a0a', borderRadius: '8px', border: '1px solid #1a1a1a' }}>
-            <span>Target: <strong style={{ color: '#fff' }}>{currentSession.duration}:00</strong></span>
-            <span>Ends ~ {new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-
-          {/* Sessions done indicators */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
-            {Array.from({ length: Math.max(4, sessionsDone + 1) }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: '8px', height: '8px', borderRadius: '50%',
-                  background: i < sessionsDone ? '#3a86ff' : '#1a1a1a',
-                  border: i < sessionsDone ? '1px solid #3a86ff' : '1px solid #222',
-                  transition: 'all 0.3s ease'
-                }}
+      <Card className="primary p-12">
+        <div className="w-full flex flex-col items-center gap-12">
+          {/* SVG Ring Timer */}
+          <div className="w-[200px] h-[200px] relative">
+            <svg width="200" height="200" viewBox="0 0 100 100" className="-rotate-90">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#0a0a0a" strokeWidth="2.5" />
+              <circle
+                cx="50" cy="50" r="46" fill="none"
+                stroke={currentSession.label === 'Focus' ? 'var(--accent)' : '#06d6a0'}
+                strokeWidth="3.5"
+                strokeDasharray="290"
+                strokeDashoffset={290 - (290 * progress) / 100}
+                strokeLinecap="round"
+                className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+                style={{ filter: `drop-shadow(0 0 8px ${currentSession.label === 'Focus' ? 'rgba(58,134,255,0.3)' : 'rgba(6,214,160,0.3)'})` }}
               />
-            ))}
-            <span style={{ fontSize: '0.65rem', color: '#444', marginLeft: '4px' }}>
-              {sessionsDone}/4 sessions
-            </span>
+            </svg>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-full">
+              <div className="text-[3.8rem] font-black text-white tracking-[-4px] font-mono leading-none">
+                {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+              </div>
+              <div className="text-[0.6rem] text-secondary/30 font-black uppercase tracking-[4px] mt-4">
+                {currentSession.label}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <Button
+              onClick={toggle}
+              className={`px-14 py-4 min-w-[180px] font-black text-[0.85rem] text-white rounded-2xl transition-all shadow-2xl uppercase tracking-widest ${isActive ? 'bg-[#0a0a0a] border border-border/20' : 'bg-accent border-none hover:scale-105 active:scale-95'}`}
+            >
+              {isActive ? 'PAUSE' : timeLeft < totalSeconds ? 'RESUME' : 'START FOCUS'}
+            </Button>
+            <button
+              onClick={reset}
+              className="px-10 py-3 bg-transparent border border-border/10 text-secondary/40 text-[0.75rem] rounded-xl font-black uppercase tracking-widest hover:text-white hover:border-border transition-all active:scale-95"
+            >
+              RESET
+            </button>
+          </div>
+
+          {/* Session info */}
+          <div className="flex items-center justify-between w-full max-w-[480px] px-10 py-6 bg-[#000] rounded-3xl border border-border/10 shadow-inner">
+            <div className="flex flex-col gap-4">
+               <span className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px]">Estimated Finish ~ {new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+               <div className="flex items-center gap-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full transition-all duration-700 ${
+                         i < sessionsDone ? 'bg-accent shadow-[0_0_12px_rgba(58,134,255,0.5)]' : 'bg-[#0a0a0a] border border-white/5'
+                      }`}
+                    />
+                  ))}
+               </div>
+            </div>
+            
+            <div className="text-right">
+              <div className="text-[1.4rem] font-black text-white tracking-tighter leading-none mb-1">{currentSession.duration}:00</div>
+              <div className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px]">Goal</div>
+            </div>
           </div>
         </div>
       </Card>

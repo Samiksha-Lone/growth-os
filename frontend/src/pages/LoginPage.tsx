@@ -62,8 +62,8 @@ export default function LoginPage() {
               <Logo />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold text-primary tracking-tight">GrowthOS</h1>
-              <p className="text-secondary mt-2">Daily productivity, habit, and focus system.</p>
+              <h1 className="text-3xl font-extrabold tracking-tight text-primary">GrowthOS</h1>
+              <p className="mt-2 text-secondary">Simple productivity, habit, and focus tracker.</p>
             </div>
           </div>
         </div>

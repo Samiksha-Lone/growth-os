@@ -45,6 +45,15 @@ export interface Insight {
   detail: string;
 }
 
+export interface Goal {
+  _id: string;
+  text: string;
+  type: 'goal' | 'affirmation';
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RealitySummary {
   date: string;
   plannedTasks: number;

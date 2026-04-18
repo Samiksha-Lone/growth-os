@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRealitySummary, fetchTasks } from '../api/growthos';
 import { Card } from '../components/ui/Card';
@@ -5,8 +6,17 @@ import { Skeleton } from '../components/ui/Skeleton';
 import type { RealitySummary, Task } from '../lib/types';
 
 export default function RealityCheckPage() {
-  const { data, isLoading } = useQuery<RealitySummary>({ queryKey: ['reality', 'summary'], queryFn: fetchRealitySummary });
-  const tasksQuery = useQuery<Task[]>({ queryKey: ['reality', 'tasks'], queryFn: fetchTasks });
+  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const [selectedDate, setSelectedDate] = useState(localDate);
+
+  const { data, isLoading } = useQuery<RealitySummary>({
+    queryKey: ['reality', selectedDate],
+    queryFn: () => fetchRealitySummary(selectedDate),
+  });
+  const tasksQuery = useQuery<Task[]>({
+    queryKey: ['tasks', selectedDate],
+    queryFn: () => fetchTasks(selectedDate),
+  });
 
   const missedTasks = tasksQuery.data?.filter(t => t.status === 'Missed') ?? [];
 
@@ -15,94 +25,105 @@ export default function RealityCheckPage() {
 
   return (
     <div className="page-stack">
-      <div className="section-header-row">
-        <h2 className="section-title" style={{ margin: 0 }}>Reality Check</h2>
-        <span style={{ fontSize: '0.8rem', color: '#444', fontWeight: 600 }}>Truth over illusion</span>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="title-main">Reality Check</h1>
+          <span className="label-sub uppercase tracking-[3px] !text-[0.6rem] text-secondary/40">Track daily status by date</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="text-[0.75rem] font-black uppercase tracking-[3px] text-secondary/50">Date</label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="field-input !h-11 !px-3 !text-sm !font-semibold"
+          />
+        </div>
       </div>
 
       {/* Top stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div className="grid grid-cols-3 gap-3">
         {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <Card key={i} className="primary"><Skeleton height="100px" /></Card>)
+          Array.from({ length: 3 }).map((_, i) => <Card key={i} className="primary h-24"><Skeleton height="100%" /></Card>)
         ) : (
           <>
-            <Card className="primary" style={{ padding: '20px 24px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', marginBottom: '10px' }}>Planned</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#fff' }}>{data?.plannedTasks ?? 0}</div>
-              <div style={{ fontSize: '0.75rem', color: '#444', marginTop: '6px' }}>tasks for today</div>
+            <Card className="primary p-5">
+              <span className="mb-2 uppercase opacity-60 label-sub !text-[0.65rem]">Total Planned</span>
+              <div className="text-[2.2rem] font-black text-white tracking-tighter leading-none">{data?.plannedTasks ?? 0}</div>
+              <div className="text-[0.6rem] text-secondary/30 font-black uppercase tracking-widest mt-1">Daily Target</div>
             </Card>
-            <Card className="primary" style={{ padding: '20px 24px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#06d6a0', fontWeight: 700, textTransform: 'uppercase', marginBottom: '10px' }}>Completed</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#06d6a0' }}>{data?.completedTasks ?? 0}</div>
-              <div style={{ fontSize: '0.75rem', color: '#444', marginTop: '6px' }}>tasks done</div>
+            <Card className="primary p-5">
+              <span className="mb-2 uppercase opacity-60 label-sub !text-[0.65rem] !text-[#06d6a0]">Completed</span>
+              <div className="text-[2.2rem] font-black text-[#06d6a0] tracking-tighter leading-none">{data?.completedTasks ?? 0}</div>
+              <div className="text-[0.6rem] text-[#06d6a0]/30 font-black uppercase tracking-widest mt-1">Success Items</div>
             </Card>
-            <Card className="primary" style={{ padding: '20px 24px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#ef476f', fontWeight: 700, textTransform: 'uppercase', marginBottom: '10px' }}>Missed</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#ef476f' }}>{data?.missedTasks ?? 0}</div>
-              <div style={{ fontSize: '0.75rem', color: '#444', marginTop: '6px' }}>tasks not done</div>
+            <Card className="primary p-5">
+              <span className="mb-2 uppercase opacity-60 label-sub !text-[0.65rem] !text-[#ef476f]">Missed Tasks</span>
+              <div className="text-[2.2rem] font-black text-[#ef476f] tracking-tighter leading-none">{data?.missedTasks ?? 0}</div>
+              <div className="text-[0.6rem] text-[#ef476f]/30 font-black uppercase tracking-widest mt-1">To Review</div>
             </Card>
           </>
         )}
       </div>
 
       <div className="split-layout">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="stack-gap-lg">
 
           {/* Completion bar */}
-          <Card className="primary" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' }}>Completion Rate</h3>
-              <span style={{ fontSize: '1.8rem', fontWeight: 800, color: scoreColor }}>{completionPct}%</span>
+          <Card className="p-6 primary">
+            <div className="flex items-center justify-between mb-6">
+              <span className="uppercase label-sub">Completion Rate</span>
+              <span className="text-[2.4rem] font-black tracking-tighter" style={{ color: scoreColor }}>{completionPct}%</span>
             </div>
-            <div style={{ height: '6px', background: '#111', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${completionPct}%`, background: scoreColor, borderRadius: '3px', transition: 'width 0.6s ease' }} />
+            <div className="h-1 bg-[#0a0a0a] rounded-full overflow-hidden">
+              <div className="h-full transition-all duration-700 ease-out" style={{ width: `${completionPct}%`, background: scoreColor }} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '0.72rem', color: '#444' }}>
+            <div className="flex justify-between mt-4 text-[0.65rem] font-black uppercase tracking-widest text-secondary/40">
               <span>0%</span>
-              <span style={{ color: scoreColor, fontWeight: 700 }}>{completionPct >= 80 ? 'On track' : completionPct >= 50 ? 'Moderate' : 'Needs attention'}</span>
+              <span className="font-black" style={{ color: scoreColor }}>{completionPct >= 80 ? 'Excellent' : completionPct >= 50 ? 'Good' : 'Needs Focus'}</span>
               <span>100%</span>
             </div>
           </Card>
 
           {/* Over-planning warning */}
           {data?.overPlanningIndicator && (
-            <Card className="primary" style={{ padding: '20px 24px', border: '1px solid rgba(239,71,111,0.2)', borderLeft: '3px solid #ef476f' }}>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ef476f', marginBottom: '6px' }}>⚠ Over-Planning Detected</div>
-              <p style={{ margin: 0, color: '#7d7d7d', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                You planned more tasks than you could complete. Consider setting a maximum of 5–7 tasks per day and marking top priorities clearly.
+            <Card className="primary p-5 !border-l-4 !border-l-[#ef476f] bg-[#ef476f]/[0.02]">
+              <div className="font-black text-[#ef476f] text-[0.85rem] uppercase tracking-widest mb-2 italic">Planning Advice</div>
+              <p className="m-0 text-secondary text-[0.8rem] font-bold leading-relaxed italic opacity-80">
+                You've planned more than usual! Try limiting your daily tasks to 5–6 to stay focused and avoid burnout.
               </p>
             </Card>
           )}
 
           {/* Missed tasks list */}
           {missedTasks.length > 0 && (
-            <Card className="primary" style={{ padding: '20px 24px' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: '0.85rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' }}>Missed Tasks</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="pt-4 stack-gap-md">
+              <span className="ml-1 uppercase label-sub">Missed Tasks</span>
+              <div className="stack-gap-sm max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
                 {missedTasks.map(t => (
-                  <div key={t._id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: 'rgba(239,71,111,0.04)', border: '1px solid rgba(239,71,111,0.1)', borderRadius: '10px' }}>
-                    <span style={{ color: '#ef476f', fontSize: '1rem' }}>✗</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{t.title}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#444', marginTop: '1px' }}>{t.category} · {t.priority} priority</div>
+                  <div key={t._id} className="group flex items-center gap-3 px-4 py-3 bg-[#ef476f]/[0.03] border border-[#ef476f]/10 rounded-2xl hover:bg-[#ef476f]/[0.05] transition-all">
+                    <span className="text-[#ef476f] font-black text-[1.2rem]">×</span>
+                    <div className="flex-1">
+                      <div className="font-black text-white text-[0.9rem] leading-none mb-1">{t.title}</div>
+                      <div className="text-[0.6rem] text-secondary/30 font-black uppercase tracking-widest">{t.category} · {t.priority}</div>
                     </div>
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
         </div>
 
         {/* Right sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="stack-gap-lg">
           {/* Insights */}
           {data?.insights && data.insights.length > 0 && (
-            <div>
-              <h3 style={{ fontSize: '0.85rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 14px' }}>Observations</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="stack-gap-md">
+              <span className="uppercase label-sub">Insights</span>
+              <div className="stack-gap-sm">
                 {data.insights.map((insight, i) => (
-                  <Card key={i} className="primary" style={{ padding: '14px 18px' }}>
-                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#a0a0a0', lineHeight: 1.6 }}>{insight}</p>
+                  <Card key={i} className="primary p-4 border-l-2 border-accent/20">
+                    <p className="m-0 text-[0.85rem] text-secondary font-bold leading-relaxed italic">"{insight}"</p>
                   </Card>
                 ))}
               </div>
@@ -110,19 +131,21 @@ export default function RealityCheckPage() {
           )}
 
           {/* Summary stat */}
-          <Card className="primary" style={{ padding: '20px 24px' }}>
-            <div style={{ fontSize: '0.75rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px' }}>Summary</div>
-            {[
-              { label: 'Completion', value: `${completionPct}%`, color: scoreColor },
-              { label: 'Planned', value: data?.plannedTasks ?? 0, color: '#fff' },
-              { label: 'Completed', value: data?.completedTasks ?? 0, color: '#06d6a0' },
-              { label: 'Missed', value: data?.missedTasks ?? 0, color: '#ef476f' },
-            ].map((row, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 3 ? '1px solid #111' : 'none' }}>
-                <span style={{ fontSize: '0.85rem', color: '#555', fontWeight: 600 }}>{row.label}</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: row.color }}>{row.value}</span>
-              </div>
-            ))}
+          <Card className="primary compact-card">
+            <span className="mb-4 uppercase label-sub">Summary for {new Date(selectedDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <div className="stack-gap-xs">
+              {[
+                { label: 'Completion rate', value: `${completionPct}%`, color: scoreColor },
+                { label: 'Total items', value: data?.plannedTasks ?? 0, color: 'text-white' },
+                { label: 'Finished', value: data?.completedTasks ?? 0, color: 'text-[#06d6a0]' },
+                { label: 'Unfinished', value: data?.missedTasks ?? 0, color: 'text-[#ef476f]' },
+              ].map((row, i) => (
+                <div key={i} className={`flex justify-between py-2 border-b border-[#0a0a0a] last:border-0`}>
+                  <span className="text-[0.75rem] text-secondary/40 font-black uppercase tracking-widest">{row.label}</span>
+                  <span className={`text-[0.9rem] font-black ${row.color.startsWith('#') ? '' : row.color}`} style={row.color.startsWith('#') ? { color: row.color } : {}}>{row.value}</span>
+                </div>
+              ))}
+            </div>
           </Card>
         </div>
       </div>

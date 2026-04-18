@@ -43,7 +43,7 @@ export function Card({ title, className = '', children, ...rest }: CardProps) {
       />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
         {title ? <div className="card-title">{title}</div> : null}
-        <div className="card-content">{children}</div>
+        <div className="card-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>{children}</div>
       </div>
     </motion.section>
   );

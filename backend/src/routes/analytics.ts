@@ -10,6 +10,9 @@ router.use(auth);
 // GET /api/analytics/daily-completion
 router.get('/daily-completion', AnalyticsController.getDailyCompletionRate);
 
+// GET /api/analytics/weekly-trend
+router.get('/weekly-trend', AnalyticsController.getWeeklyTrend);
+ 
 // GET /api/analytics/weekly
 router.get('/weekly', AnalyticsController.getWeeklyStats);
 

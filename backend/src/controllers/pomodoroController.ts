@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PomodoroService } from '../services/pomodoroService';
 import Joi from 'joi';
+import { parseLocalDate, buildLocalDateRange } from '../utils/dateUtils';
 
 const createSessionSchema = Joi.object({
   duration: Joi.number().min(1).required(),
@@ -27,7 +28,7 @@ export class PomodoroController {
 
   static async getSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const date = req.query.date ? new Date(req.query.date as string) : undefined;
+      const date = req.query.date ? parseLocalDate(req.query.date as string) : undefined;
       const sessions = await PomodoroService.getSessions(req.user._id, date);
 
       res.json({ sessions });
@@ -38,9 +39,10 @@ export class PomodoroController {
 
   static async getTotalFocusTime(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
-      const totalTime = await PomodoroService.getTotalFocusTime(req.user._id, startDate, endDate);
+      const startDate = req.query.startDate ? parseLocalDate(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? parseLocalDate(req.query.endDate as string) : undefined;
+      const { startDate: start, endDate: end } = buildLocalDateRange(startDate, endDate);
+      const totalTime = await PomodoroService.getTotalFocusTime(req.user._id, start, end);
 
       res.json({ totalFocusTime: totalTime });
     } catch (error: any) {

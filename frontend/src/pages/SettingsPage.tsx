@@ -1,26 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import toast from 'react-hot-toast';
-import { updateProfile, deleteProfile, uploadAvatar, fetchProfile } from '../api/growthos';
+import { updateProfile, deleteProfile, uploadAvatar } from '../api/growthos';
 import { getFullAvatarUrl } from '../lib/utils';
 
 export default function SettingsPage() {
   const { userName, userEmail, githubUrl, linkedinUrl, portfolioUrl, avatarUrl, updateUser, signOut } = useAuth();
-  
+
   const [profile, setProfile] = useState({
-    firstName: (userName?.split(' ')[0]) || 'User',
-    lastName: (userName?.split(' ').slice(1).join(' ')) || '',
-    email: userEmail || '',
-    username: userEmail?.split('@')[0] || ''
+    firstName: '',
+    lastName: '',
+    email: ''
   });
-  
+
   const [socials, setSocials] = useState({
-    github: githubUrl || '',
-    linkedin: linkedinUrl || '',
-    portfolio: portfolioUrl || ''
+    github: '',
+    linkedin: '',
+    portfolio: ''
   });
+
+  // Sync form state with auth context
+  useEffect(() => {
+    setProfile({
+      firstName: (userName?.split(' ')[0]) || '',
+      lastName: (userName?.split(' ').slice(1).join(' ')) || '',
+      email: userEmail || ''
+    });
+    setSocials({
+      github: githubUrl || '',
+      linkedin: linkedinUrl || '',
+      portfolio: portfolioUrl || ''
+    });
+  }, [userName, userEmail, githubUrl, linkedinUrl, portfolioUrl]);
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -29,24 +42,24 @@ export default function SettingsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await updateProfile({
-        name: `${profile.firstName} ${profile.lastName}`,
+      const updatedUser = await updateProfile({
+        name: `${profile.firstName} ${profile.lastName}`.trim(),
         email: profile.email,
-        githubUrl: socials.github,
-        linkedinUrl: socials.linkedin,
-        portfolioUrl: socials.portfolio,
-        avatarUrl: avatarUrl || ''
+        githubUrl: socials.github || undefined,
+        linkedinUrl: socials.linkedin || undefined,
+        portfolioUrl: socials.portfolio || undefined,
+        avatarUrl: avatarUrl || undefined
       });
-      
+
       updateUser({
-        userName: `${profile.firstName} ${profile.lastName}`,
-        userEmail: profile.email,
-        githubUrl: socials.github,
-        linkedinUrl: socials.linkedin,
-        portfolioUrl: socials.portfolio,
-        avatarUrl: avatarUrl || ''
+        userName: updatedUser.name,
+        userEmail: updatedUser.email,
+        githubUrl: updatedUser.githubUrl,
+        linkedinUrl: updatedUser.linkedinUrl,
+        portfolioUrl: updatedUser.portfolioUrl,
+        avatarUrl: updatedUser.avatarUrl
       });
-      
+
       toast.success('Profile updated');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -90,27 +103,35 @@ export default function SettingsPage() {
 
   return (
     <div className="page-stack">
-      <div className="section-header-row">
-        <h2 className="section-title" style={{ margin: 0 }}>System Configuration</h2>
+      <div className="flex items-center justify-between">
+        <h1 className="title-main">Settings</h1>
       </div>
 
       <div className="split-layout">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="stack-gap-lg">
           {/* Profile Section */}
-          <Card className="primary" style={{ padding: '24px' }}>
-             <h3 className="card-title" style={{ marginBottom: '24px', fontSize: '0.9rem', color: '#555', textTransform: 'uppercase' }}>User Profile</h3>
+          <Card className="primary p-6">
+             <span className="label-sub uppercase tracking-[2px]">My Profile</span>
              
-             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '28px', paddingBottom: '24px', borderBottom: '1px solid #1a1a1a' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #3a86ff, #06d6a0)', padding: '2px', overflow: 'hidden' }}>
-                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', overflow: 'hidden' }}>
+             <div className="flex items-center gap-6 mb-8 mt-6 pb-8 border-b border-[#0a0a0a]">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent to-[#06d6a0] p-[3px] overflow-hidden flex-shrink-0 shadow-2xl">
+                   <div className="w-full h-full rounded-full bg-[#0a0a0a] flex items-center justify-center text-[2rem] overflow-hidden">
                       {avatarUrl ? (
-                         <img src={getFullAvatarUrl(avatarUrl)!} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                         <img 
+                            src={getFullAvatarUrl(avatarUrl)!} 
+                            alt="Avatar" 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.parentElement!.innerHTML = '<span style="font-size:2rem">👤</span>';
+                            }}
+                         />
                       ) : (
-                         '👤'
+                         <span>👤</span>
                       )}
                    </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="stack-gap-md">
                    <input 
                       type="file" 
                       id="avatar-input" 
@@ -121,69 +142,64 @@ export default function SettingsPage() {
                    <Button 
                       disabled={uploading}
                       onClick={() => document.getElementById('avatar-input')?.click()} 
-                      style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', color: '#fff', fontSize: '0.8rem', padding: '6px 12px' }}
+                      className="!bg-[#0f0f0f] !border !border-border !text-white !text-[0.7rem] !font-black !px-5 !py-2 !rounded-xl hover:bg-border transition-all"
                    >
-                      {uploading ? 'UPLOADING...' : 'UPLOAD PHOTO'}
+                      {uploading ? 'UPLOADING...' : 'CHANGE PHOTO'}
                    </Button>
-                   <span style={{ fontSize: '0.7rem', color: '#444' }}>PNG or JPG up to 1MB</span>
+                   <span className="text-[0.6rem] text-secondary font-black uppercase tracking-widest">JPG/PNG MAX 1.0MB</span>
                 </div>
              </div>
 
-             <form onSubmit={handleSave}>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div className="field-group">
-                     <label className="field-label" style={{ color: '#555', fontSize: '0.75rem', fontWeight: 700, marginBottom: '6px', display: 'block', textTransform: 'uppercase' }}>First Name</label>
-                     <input className="field-input" value={profile.firstName} onChange={e => setProfile({...profile, firstName: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '38px', fontSize: '0.9rem' }} />
-                  </div>
-                  <div className="field-group">
-                     <label className="field-label" style={{ color: '#555', fontSize: '0.75rem', fontWeight: 700, marginBottom: '6px', display: 'block', textTransform: 'uppercase' }}>Last Name</label>
-                     <input className="field-input" value={profile.lastName} onChange={e => setProfile({...profile, lastName: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '38px', fontSize: '0.9rem' }} />
-                  </div>
-               </div>
+             <form onSubmit={handleSave} className="stack-gap-md">
+                <div className="grid grid-cols-2 gap-6">
+                   <div className="stack-gap-sm">
+                      <label className="label-sub ml-1 uppercase">First Name</label>
+                      <input className="field-input !h-12 !text-[0.9rem] !px-4" value={profile.firstName} onChange={e => setProfile({...profile, firstName: e.target.value})} />
+                   </div>
+                   <div className="stack-gap-sm">
+                      <label className="label-sub ml-1 uppercase">Last Name</label>
+                      <input className="field-input !h-12 !text-[0.9rem] !px-4" value={profile.lastName} onChange={e => setProfile({...profile, lastName: e.target.value})} />
+                   </div>
+                </div>
 
-               <div className="field-group" style={{ marginBottom: '16px' }}>
-                  <label className="field-label" style={{ color: '#555', fontSize: '0.75rem', fontWeight: 700, marginBottom: '6px', display: 'block', textTransform: 'uppercase' }}>Email Address</label>
-                  <input className="field-input" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '38px', fontSize: '0.9rem' }} />
-               </div>
+                <div className="stack-gap-sm">
+                   <label className="label-sub ml-1 uppercase">Email Address</label>
+                   <input className="field-input !h-12 !text-[0.9rem] !px-4" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} />
+                </div>
 
-               <div className="field-group" style={{ marginBottom: '28px' }}>
-                  <label className="field-label" style={{ color: '#555', fontSize: '0.75rem', fontWeight: 700, marginBottom: '6px', display: 'block', textTransform: 'uppercase' }}>Username</label>
-                  <input className="field-input" value={profile.username} onChange={e => setProfile({...profile, username: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '38px', fontSize: '0.9rem' }} />
-               </div>
-
-               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                 <Button disabled={saving} type="submit" style={{ background: '#3a86ff', color: '#fff', border: 'none', padding: '10px 24px', fontWeight: 700, fontSize: '0.9rem' }}>
-                   {saving ? 'Saving...' : 'COMMIT CHANGES'}
-                 </Button>
-               </div>
+                <div className="flex justify-end mt-6">
+                  <Button disabled={saving} type="submit" className="!bg-accent !text-white !border-none !py-3.5 !px-12 !font-black !text-[0.8rem] !rounded-xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest">
+                    {saving ? 'SAVING...' : 'SAVE SETTINGS'}
+                  </Button>
+                </div>
              </form>
           </Card>
         </div>
 
         {/* Social Links Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <Card className="primary compact-card">
-             <h3 className="card-title" style={{ fontSize: '0.8rem', color: '#555', textTransform: 'uppercase', marginBottom: '16px' }}>Network Presence</h3>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="field-group">
-                   <label style={{ color: '#444', fontSize: '0.7rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>GITHUB</label>
-                   <input className="field-input" value={socials.github} onChange={e => setSocials({...socials, github: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '34px', fontSize: '0.85rem' }} />
+        <div className="stack-gap-lg">
+          <Card className="primary compact-card p-6">
+             <span className="label-sub uppercase tracking-[2px]">Social Links</span>
+             <div className="stack-gap-md mt-6">
+                <div className="stack-gap-sm">
+                   <label className="text-secondary/40 text-[0.65rem] font-black uppercase tracking-widest ml-1">Github</label>
+                   <input className="field-input !h-10 !text-[0.85rem] !px-4" value={socials.github} onChange={e => setSocials({...socials, github: e.target.value})} />
                 </div>
-                <div className="field-group">
-                   <label style={{ color: '#444', fontSize: '0.7rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>LINKEDIN</label>
-                   <input className="field-input" value={socials.linkedin} onChange={e => setSocials({...socials, linkedin: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '34px', fontSize: '0.85rem' }} />
+                <div className="stack-gap-sm">
+                   <label className="text-secondary/40 text-[0.65rem] font-black uppercase tracking-widest ml-1">Linkedin</label>
+                   <input className="field-input !h-10 !text-[0.85rem] !px-4" value={socials.linkedin} onChange={e => setSocials({...socials, linkedin: e.target.value})} />
                 </div>
-                <div className="field-group">
-                   <label style={{ color: '#444', fontSize: '0.7rem', fontWeight: 700, marginBottom: '4px', display: 'block' }}>PORTFOLIO</label>
-                   <input className="field-input" value={socials.portfolio} onChange={e => setSocials({...socials, portfolio: e.target.value})} style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', height: '34px', fontSize: '0.85rem' }} />
+                <div className="stack-gap-sm">
+                   <label className="text-secondary/40 text-[0.65rem] font-black uppercase tracking-widest ml-1">Portfolio</label>
+                   <input className="field-input !h-10 !text-[0.85rem] !px-4" value={socials.portfolio} onChange={e => setSocials({...socials, portfolio: e.target.value})} />
                 </div>
              </div>
           </Card>
 
-          <Card className="primary compact-card" style={{ border: '1px solid rgba(239, 71, 111, 0.1)' }}>
-             <h3 className="card-title" style={{ fontSize: '0.8rem', color: '#ef476f', textTransform: 'uppercase', marginBottom: '8px' }}>Security</h3>
-             <p style={{ fontSize: '0.75rem', color: '#555', marginBottom: '16px', lineHeight: 1.4 }}>Permanent account deletion occurs immediately. This cannot be undone.</p>
-             <Button onClick={handleDeleteAccount} style={{ background: 'transparent', border: '1px solid #ef476f20', color: '#ef476f', padding: '6px 14px', fontSize: '0.75rem', fontWeight: 700 }}>DELETE ACCOUNT</Button>
+          <Card className="primary compact-card p-6 border border-[#ef476f]/10 shadow-[0_0_20px_rgba(239,71,111,0.02)] bg-[#ef476f]/[0.01]">
+             <span className="label-sub !text-[#ef476f] uppercase tracking-[2px]">Danger Zone</span>
+             <p className="text-[0.75rem] text-secondary font-bold mt-4 mb-6 leading-relaxed italic opacity-60">Deleting your account will remove all your data forever. This action cannot be undone.</p>
+             <Button onClick={handleDeleteAccount} className="!bg-transparent !border !border-[#ef476f]/20 !text-[#ef476f] !py-2.5 !px-6 !text-[0.65rem] !font-black !rounded-xl hover:!bg-[#ef476f]/05 transition-all active:scale-95 uppercase tracking-widest">DELETE ACCOUNT</Button>
           </Card>
         </div>
       </div>

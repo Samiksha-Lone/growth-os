@@ -41,10 +41,11 @@
   .app-shell {
     @apply min-h-screen grid;
     grid-template-columns: 280px 1fr;
+    background: #050505;
   }
 
   .app-content {
-    @apply flex flex-col;
+    @apply flex flex-col w-full max-w-[1600px] mx-auto;
   }
 
   .page-grid {
@@ -223,6 +224,31 @@
   .toast-card {
     @apply bg-card border border-border rounded-xl px-4 py-3 text-primary shadow-lg;
   }
+
+  /* Standardized UI Utilities */
+  .title-main {
+    @apply text-2xl font-[900] text-white tracking-tight leading-tight m-0 uppercase;
+  }
+
+  .title-sub {
+    @apply text-base text-secondary font-medium leading-relaxed m-0;
+  }
+
+  .label-sub {
+    @apply text-[0.7rem] text-secondary/60 uppercase tracking-[1.5px] font-black block mb-1.5;
+  }
+
+  .label-heavy {
+    @apply text-sm font-bold text-secondary uppercase tracking-wide mb-3;
+  }
+
+  .stack-gap-lg {
+    @apply flex flex-col gap-7;
+  }
+
+  .stack-gap-md {
+    @apply flex flex-col gap-4;
+  }
 }
 
 /* Sidebar nav link layout is handled in the components layer */
@@ -270,11 +296,11 @@
 }
 
 .wide-card {
-  @apply col-span-2 min-h-60;
+  @apply col-span-2;
 }
 
 .card {
-  @apply backdrop-blur-xl rounded-2xl p-6 transition-all duration-300 ease-out flex flex-col min-h-35 relative overflow-hidden;
+  @apply backdrop-blur-xl rounded-2xl p-5 transition-all duration-300 ease-out flex flex-col relative overflow-hidden;
   background: rgba(22, 22, 22, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -303,7 +329,6 @@
 /* Card type variants */
 .card.primary {
   border: 1px solid #3a3a3a;
-  padding: 28px;
 }
 
 .card.primary:hover {
@@ -597,7 +622,7 @@
 
 .field-input,
 .field-textarea {
-  @apply w-full p-4 rounded-xl border border-border bg-background text-primary transition-all duration-150 text-base;
+  @apply w-full px-5 py-3 rounded-xl border border-border bg-background text-primary transition-all duration-150 text-base;
 }
 
 .field-input:hover,

@@ -1,0 +1,20 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circular G shape -->
+  <path 
+    d="M32 10
+       A22 22 0 1 1 20 52"
+    stroke="white"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Arrow head (growth direction) -->
+  <path 
+    d="M20 52 L20 44 M20 52 L28 52"
+    stroke="#00BFFF"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

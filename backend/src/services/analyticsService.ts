@@ -4,7 +4,8 @@ import Reflection from '../models/Reflection';
 
 export class AnalyticsService {
   static async getDailyCompletionRate(userId: string, date: Date): Promise<number> {
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
 
@@ -17,6 +18,23 @@ export class AnalyticsService {
 
     const completedTasks = tasks.filter(task => task.status === 'Completed').length;
     return Math.round((completedTasks / tasks.length) * 100);
+  }
+  static async getWeeklyCompletionTrend(userId: string): Promise<any[]> {
+    const shortDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const trend = [];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(today.getDate() - i);
+      const rate = await this.getDailyCompletionRate(userId, d);
+      trend.push({
+        day: shortDays[d.getDay()],
+        value: rate
+      });
+    }
+    return trend;
   }
 
   static async getWeeklyStats(userId: string, startDate: Date): Promise<any> {

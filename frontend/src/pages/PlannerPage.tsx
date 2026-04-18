@@ -1,71 +1,114 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createTask, fetchTasks, deleteTask, updateTask, fetchReflections } from '../api/growthos';
+import { createTask, fetchTasks, deleteTask, updateTask, fetchReflections, fetchHabits } from '../api/growthos';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { TaskItem } from '../components/TaskItem';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/ui/Modal';
-import type { Task, Reflection } from '../lib/types';
+import type { Task, Reflection, Habit } from '../lib/types';
+
+const statusOrder = ['Pending', 'In Progress', 'Completed', 'Missed'] as const;
+
+function calcStreak(completedDates: string[]): number {
+  if (!completedDates?.length) return 0;
+  const sorted = [...completedDates].map(d => d.split('T')[0]).sort().reverse();
+  const unique = [...new Set(sorted)];
+  let streak = 0;
+  let current = new Date();
+  current.setHours(0, 0, 0, 0);
+
+  for (const ds of unique) {
+    const [y, m, dstr] = ds.split('-');
+    const d = new Date(Number(y), Number(m) - 1, Number(dstr));
+    d.setHours(0, 0, 0, 0);
+    const diff = Math.round((current.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff <= 1) {
+      streak++;
+      current = d;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
 
 export default function PlannerPage() {
-  const [activeTab, setActiveTab] = useState<'Pending' | 'In Progress' | 'Completed' | 'Missed'>('Pending');
+  const [activeTab, setActiveTab] = useState<(typeof statusOrder)[number]>('Pending');
   const [draft, setDraft] = useState('');
   const [category, setCategory] = useState<Task['category']>('Personal');
   const [priority, setPriority] = useState<Task['priority']>('Medium');
-  const [startTime, setStartTime] = useState('');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const queryClient = useQueryClient();
+  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+
   const { data, isLoading } = useQuery<Task[]>({
-    queryKey: ['planner', 'tasks'],
-    queryFn: fetchTasks
+    queryKey: ['tasks'],
+    queryFn: () => fetchTasks()
+  });
+
+  const habitsQuery = useQuery<Habit[]>({
+    queryKey: ['habits'],
+    queryFn: () => fetchHabits()
   });
 
   const reflectionsQuery = useQuery<Reflection[]>({
-    queryKey: ['planner', 'reflections'],
-    queryFn: fetchReflections
+    queryKey: ['reflections'],
+    queryFn: () => fetchReflections()
   });
 
-  const filteredTasks = useMemo(() => {
-    return data?.filter(t => t.status === activeTab) ?? [];
-  }, [data, activeTab]);
-
-  const top3 = useMemo(() => {
-    return data?.filter(t => t.priority === 'High' && t.status !== 'Completed').slice(0, 3) ?? [];
+  const filteredTasks = useMemo(() => data?.filter(t => t.status === activeTab) ?? [], [data, activeTab]);
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    statusOrder.forEach(s => { counts[s] = data?.filter(t => t.status === s).length ?? 0; });
+    return counts;
   }, [data]);
+
+  const topPriorities = useMemo(() => data?.filter(t => t.priority === 'High' && t.status !== 'Completed').slice(0, 3) ?? [], [data]);
+  const today = new Date().toISOString().split('T')[0];
 
   const addTaskMutation = useMutation({
     mutationFn: createTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['planner', 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] });
       setDraft('');
-      setStartTime('');
       toast.success('Task saved');
     }
   });
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['planner', 'tasks'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] });
+    }
   });
 
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTask,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['planner', 'tasks'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] });
+    }
   });
 
   return (
     <div className="page-stack">
-      <div className="section-header-row">
-        <h2 className="section-title" style={{ margin: 0 }}>Planner</h2>
-        <div className="tab-group">
-          {(['Pending', 'In Progress', 'Completed', 'Missed'] as const).map(tab => (
+      <div className="flex items-center justify-between">
+        <h1 className="title-main">My Planner</h1>
+        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
+          {statusOrder.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
+              className={`px-4 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
             >
               {tab}
             </button>
@@ -75,89 +118,88 @@ export default function PlannerPage() {
 
       <div className="split-layout">
         {/* Main Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="stack-gap-lg">
 
           {/* Add Task Form */}
-          <Card className="primary" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <Card className="primary p-6">
+            <div className="stack-gap-md">
               <input
-                className="field-input"
+                className="field-input !h-12 !text-[1rem] !font-semibold !px-5"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="What do you want to accomplish today?"
+                placeholder="What do you want to achieve today?"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && draft.trim()) {
-                    addTaskMutation.mutate({ title: draft, category, priority, startTime: startTime || undefined, status: 'Pending' });
+                    addTaskMutation.mutate({ title: draft, category, priority, status: 'Pending' });
                   }
                 }}
-                style={{ height: '44px', fontSize: '0.95rem', fontWeight: 500, padding: '0 18px' }}
               />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px', gap: '12px', alignItems: 'end' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="label-sub !mb-0 ml-1">Category</label>
                   <select
-                    className="field-input"
+                    className="field-input !h-11 !text-[0.9rem]"
                     value={category}
                     onChange={(e) => setCategory(e.target.value as Task['category'])}
-                    style={{ height: '40px', fontSize: '0.88rem', padding: '0 36px 0 14px' }}
                   >
-                    <option value="Work">💼 Work</option>
-                    <option value="Study">📚 Study</option>
-                    <option value="Health">🏃 Health</option>
-                    <option value="Personal">👤 Personal</option>
+                    <option value="Work">Work</option>
+                    <option value="Study">Study</option>
+                    <option value="Health">Health</option>
+                    <option value="Personal">Personal</option>
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Priority</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="label-sub !mb-0 ml-1">Priority</label>
                   <select
-                    className="field-input"
+                    className="field-input !h-11 !text-[0.9rem]"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as Task['priority'])}
-                    style={{ height: '40px', fontSize: '0.88rem', padding: '0 36px 0 14px' }}
                   >
-                    <option value="High">🔴 High</option>
-                    <option value="Medium">🟡 Medium</option>
-                    <option value="Low">🟢 Low</option>
+                    <option value="High">High Priority</option>
+                    <option value="Medium">Medium Priority</option>
+                    <option value="Low">Low Priority</option>
                   </select>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time</label>
-                  <input
-                    type="time"
-                    className="field-input"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    style={{ height: '40px', fontSize: '0.88rem', padding: '0 10px', colorScheme: 'dark' }}
-                  />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="flex justify-end mt-2">
                 <Button
                   onClick={() => {
                     if (draft.trim()) {
-                      addTaskMutation.mutate({ title: draft, category, priority, startTime: startTime || undefined, status: 'Pending' });
+                      addTaskMutation.mutate({ title: draft, category, priority, status: 'Pending' });
                     }
                   }}
-                  style={{ height: '38px', padding: '0 24px', background: '#3a86ff', color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}
+                  className="!px-8 !py-3 !bg-[#3a86ff] !text-white !font-black !text-[0.85rem] !rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl"
                 >
-                  + Add Task
+                  ADD TASK
                 </Button>
               </div>
             </div>
           </Card>
 
           {/* Task List */}
-          <Card className="primary" style={{ padding: '0 20px' }}>
-            <div className="task-preview-list">
+          <Card className="primary !p-0 overflow-hidden">
+            <div className="px-6 py-3 bg-[#050505] border-b border-border flex justify-between items-center">
+               <span className="label-sub uppercase !text-[0.6rem] tracking-[2px]">{activeTab} Queue</span>
+               <div className="flex gap-2">
+                  {statusOrder.map((tab) => (
+                    tabCounts[tab] > 0 && (
+                      <span key={tab} className={`text-[0.6rem] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${activeTab === tab ? 'bg-accent text-white' : 'bg-[#111] text-secondary/30'}`}>
+                        {tabCounts[tab]} {tab[0]}
+                      </span>
+                    )
+                  ))}
+               </div>
+            </div>
+
+            <div className="task-preview-list px-6">
               {isLoading ? (
                 <Skeleton height="200px" />
               ) : filteredTasks.length === 0 ? (
-                <div style={{ padding: '40px 0', textAlign: 'center', color: '#444', fontSize: '0.9rem' }}>
-                  {activeTab === 'Pending' ? 'No tasks yet — add one above!' : `No ${activeTab.toLowerCase()} tasks.`}
+                <div className="py-12 text-center text-[#444] text-[0.9rem] italic">
+                  No {activeTab.toLowerCase()} tasks found.
                 </div>
               ) : (
                 filteredTasks.map((task) => (
@@ -175,79 +217,97 @@ export default function PlannerPage() {
           </Card>
 
           {activeTab === 'Missed' && (
-            <Card title="Accountability" className="primary compact-card" style={{ borderLeft: '3px solid #ef476f' }}>
-               <p style={{ color: '#7d7d7d', fontSize: '0.85rem', marginBottom: '12px' }}>What held you back from completing these tasks today?</p>
+            <Card className="primary compact-card border-l-[3px] !border-l-[#ef476f] p-6">
+               <span className="label-sub uppercase !text-[#ef476f] !mb-2 opacity-60">Missed Task Review</span>
+               <p className="text-secondary/60 text-[0.8rem] mb-4 font-bold italic">What prevented you from finishing this?</p>
                <textarea
-                 className="field-textarea"
-                 placeholder="Got held up with an urgent issue..."
-                 rows={2}
-                 style={{ background: '#0a0a0a', fontSize: '0.9rem' }}
+                 className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-24"
+                 placeholder="Any notes on why this wasn't finished?"
                />
-               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                 <Button style={{ background: '#1d1d1d', border: '1px solid #2a2a2a', color: '#fff', fontSize: '0.75rem', padding: '6px 12px' }}>Save Note</Button>
+               <div className="flex justify-end mt-4">
+                 <Button className="!bg-accent/10 !border !border-accent/20 !text-accent !text-[0.65rem] !font-black !px-6 !py-2 !rounded-xl active:scale-95 transition-all uppercase tracking-widest leading-none">SAVE ANALYSIS</Button>
                </div>
             </Card>
           )}
         </div>
 
         {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+        <div className="stack-gap-lg">
 
           {/* Top 3 Priorities */}
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 14px 0' }}>🎯 Top 3 Priorities</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {top3.length === 0 ? (
-                <div style={{ padding: '24px', background: '#0a0a0a', borderRadius: '14px', border: '1px dashed #222', textAlign: 'center', color: '#444', fontSize: '0.85rem' }}>
-                  Add high-priority tasks to see them here
+          <div className="stack-gap-md">
+            <span className="label-sub ml-1 uppercase">Top Priorities</span>
+            <div className="flex flex-col gap-3 mt-4">
+              {topPriorities.length === 0 ? (
+                <div className="p-10 bg-[#000] rounded-2xl border border-dashed border-border/20 text-center text-secondary/20 text-[0.8rem] font-bold italic">
+                  Define high-priority targets
                 </div>
-              ) : top3.map((t, i) => (
-                <div key={t._id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '12px 16px', background: '#0a0a0a', borderRadius: '12px',
-                  border: `1px solid ${i === 0 ? '#ef476f22' : '#1a1a1a'}`,
-                  transition: 'all 0.2s ease'
-                }}>
-                  <div style={{
-                    width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-                    background: i === 0 ? 'rgba(239,71,111,0.12)' : i === 1 ? 'rgba(255,166,0,0.08)' : 'rgba(58,134,255,0.08)',
-                    border: `1.5px solid ${i === 0 ? '#ef476f55' : i === 1 ? '#ffa50055' : '#3a86ff55'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.7rem', fontWeight: 800,
-                    color: i === 0 ? '#ef476f' : i === 1 ? '#ffa500' : '#3a86ff',
-                  }}>
+              ) : topPriorities.map((t, i) => (
+                <div key={t._id} className={`flex items-center gap-4 p-4 bg-[#050505] rounded-2xl border transition-all duration-300 ${i === 0 ? 'border-accent/20 shadow-[0_0_20px_rgba(58,134,255,0.03)]' : 'border-border/10'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[0.7rem] font-black border-2 ${i === 0 ? 'bg-accent/10 border-accent/40 text-accent' : i === 1 ? 'bg-[#ffd166]/10 border-[#ffd166]/40 text-[#ffd166]' : 'bg-[#06d6a0]/10 border-[#06d6a0]/40 text-[#06d6a0]'}`}>
                     {i + 1}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#e0e0e0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#444' }}>{t.category}</span>
-                      {t.startTime && <span style={{ fontSize: '0.72rem', color: '#555' }}>⏰ {t.startTime}</span>}
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-black text-[0.95rem] text-white truncate leading-none mb-1.5">{t.title}</div>
+                    <span className="text-[0.6rem] text-secondary/40 font-black uppercase tracking-[2px]">{t.category}</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Past Reflections */}
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 14px 0' }}>Past Reflections</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {reflectionsQuery.isLoading ? (
-                <Skeleton height="200px" />
-              ) : !reflectionsQuery.data?.length ? (
-                <div style={{ padding: '20px', background: '#0a0a0a', borderRadius: '14px', border: '1px dashed #222', textAlign: 'center', color: '#444', fontSize: '0.85rem' }}>
-                  No reflections yet
-                </div>
-              ) : reflectionsQuery.data?.slice(0, 4).map(ref => (
-                <Card key={ref._id} className="secondary compact-card" style={{ border: '1px solid #1a1a1a' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
-                     <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>{new Date(ref.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                     <span style={{ fontSize: '0.72rem', fontWeight: 700, color: ref.productivityScore >= 7 ? '#06d6a0' : ref.productivityScore >= 4 ? '#ffd166' : '#ef476f' }}>{ref.productivityScore}/10</span>
+          <Card className="primary p-5 stack-gap-md">
+            <span className="label-sub !mb-0">Daily Habits</span>
+            <div className="stack-gap-md mt-6">
+              {habitsQuery.isLoading ? (
+                <Skeleton height="160px" />
+              ) : !habitsQuery.data?.length ? (
+                <div className="py-6 text-center text-secondary/20 text-[0.8rem] font-bold italic">No active habits.</div>
+              ) : habitsQuery.data.map((habit, i) => {
+                const isToday = habit.completedDates?.some(d => d.startsWith(today));
+                const streak = calcStreak(habit.completedDates || []);
+                return (
+                  <div key={habit._id} className={`${i > 0 ? 'pt-5 border-t border-[#0a0a0a]' : ''}`}>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className={`font-black text-[0.9rem] ${isToday ? 'text-secondary/30' : 'text-white'}`}>{habit.name}</span>
+                      {streak > 0 && (
+                        <span className="bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20 text-[0.6rem] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
+                          {streak}D STREAK
+                        </span>
+                      )}
+                    </div>
+                    <div className="h-1 bg-[#0a0a0a] rounded-full overflow-hidden">
+                      <div className={`h-full transition-all duration-700 ease-out ${isToday ? 'w-full bg-[#06d6a0]' : 'w-0'}`} />
+                    </div>
+                    <div className="text-[0.6rem] font-black uppercase tracking-[2px] text-secondary/30 mt-2">
+                      {isToday ? 'SUCCESS TODAY' : 'PENDING'}
+                    </div>
                   </div>
-                  <p style={{ color: '#7d7d7d', fontSize: '0.8rem', lineHeight: 1.4, margin: 0 }}>
-                    {ref.goodThings[0]?.substring(0, 65)}{(ref.goodThings[0]?.length ?? 0) > 65 ? '...' : ''}
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Past Reflections */}
+          <div className="stack-gap-md">
+            <span className="label-sub ml-1 uppercase">Recent Reflections</span>
+            <div className="flex flex-col gap-3 mt-4">
+              {reflectionsQuery.isLoading ? (
+                <Skeleton height="150px" />
+              ) : !reflectionsQuery.data?.length ? (
+                <div className="p-8 bg-[#000] rounded-2xl border border-dashed border-border/20 text-center text-secondary/20 text-[0.8rem] font-bold italic">
+                  Logs will appear here
+                </div>
+              ) : reflectionsQuery.data?.slice(0, 3).map(ref => (
+                <Card key={ref._id} className="secondary !min-h-0 !p-5 border border-border/10">
+                  <div className="flex justify-between items-center mb-3">
+                     <span className="font-black text-[0.8rem] text-white uppercase tracking-[2px]">{new Date(ref.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                     <span className={`text-[0.6rem] font-black uppercase tracking-widest ${ref.productivityScore >= 7 ? 'text-[#06d6a0]' : ref.productivityScore >= 4 ? 'text-[#ffd166]' : 'text-[#ef476f]'}`}>
+                       {ref.productivityScore}/10 SCORE
+                     </span>
+                  </div>
+                  <p className="text-secondary/60 text-[0.8rem] font-bold leading-relaxed line-clamp-2 italic">
+                    {ref.goodThings[0] || 'No summary provided.'}
                   </p>
                 </Card>
               ))}
@@ -259,59 +319,48 @@ export default function PlannerPage() {
       {/* Edit Task Modal */}
       <Modal open={!!editingTask} onClose={() => setEditingTask(null)} title="Edit Task">
         {editingTask && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' }}>Task Title</label>
+          <div className="flex flex-col gap-6">
+             <div className="flex flex-col gap-2">
+                <label className="label-sub uppercase ml-1">Task Title</label>
                 <input
-                  className="field-input"
+                  className="field-input !h-12 !px-5 !text-[1rem]"
                   value={editingTask.title}
                   onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
                   placeholder="Task name..."
                 />
              </div>
 
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' }}>Category</label>
-                   <select className="field-input" value={editingTask.category} onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value as Task['category'] })} style={{ appearance: 'none' }}>
-                     <option value="Work">💼 Work</option>
-                     <option value="Study">📚 Study</option>
-                     <option value="Health">🏃 Health</option>
-                     <option value="Personal">👤 Personal</option>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                   <label className="label-sub uppercase ml-1">Category</label>
+                   <select className="field-input !h-12 !px-4 uppercase tracking-widest text-[0.8rem] font-black" value={editingTask.category} onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value as Task['category'] })}>
+                     <option value="Work">Work</option>
+                     <option value="Study">Study</option>
+                     <option value="Health">Health</option>
+                     <option value="Personal">Personal</option>
                    </select>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' }}>Priority</label>
-                   <select className="field-input" value={editingTask.priority} onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as Task['priority'] })} style={{ appearance: 'none' }}>
-                     <option value="High">🔴 High</option>
-                     <option value="Medium">🟡 Medium</option>
-                     <option value="Low">🟢 Low</option>
+                <div className="flex flex-col gap-2">
+                   <label className="label-sub uppercase ml-1">Priority</label>
+                   <select className="field-input !h-12 !px-4 uppercase tracking-widest text-[0.8rem] font-black" value={editingTask.priority} onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as Task['priority'] })}>
+                     <option value="High">High</option>
+                     <option value="Medium">Medium</option>
+                     <option value="Low">Low</option>
                    </select>
                 </div>
              </div>
 
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' }}>Planned Time (optional)</label>
-                <input
-                  type="time"
-                  className="field-input"
-                  value={editingTask.startTime || ''}
-                  onChange={(e) => setEditingTask({ ...editingTask, startTime: e.target.value })}
-                  style={{ colorScheme: 'dark' }}
-                />
-             </div>
-
-             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '4px' }}>
-                <Button onClick={() => setEditingTask(null)} style={{ background: 'transparent', border: '1px solid #222', color: '#555' }}>Cancel</Button>
+             <div className="flex justify-end gap-3 mt-4">
+                <Button onClick={() => setEditingTask(null)} className="!bg-transparent !border !border-border !text-secondary !px-6 !py-2.5 !text-[0.75rem] !font-black !rounded-xl active:scale-95 transition-all uppercase tracking-widest">Cancel</Button>
                 <Button
                   onClick={() => {
                     updateTaskMutation.mutate({
                       id: editingTask._id,
-                      updates: { title: editingTask.title, category: editingTask.category, priority: editingTask.priority, startTime: editingTask.startTime }
+                      updates: { title: editingTask.title, category: editingTask.category, priority: editingTask.priority }
                     });
                     setEditingTask(null);
                   }}
-                  style={{ background: '#3a86ff', color: '#fff' }}
+                  className="!bg-accent !text-white !px-8 !py-2.5 !text-[0.75rem] !font-black !rounded-xl active:scale-95 transition-all shadow-xl uppercase tracking-widest"
                 >
                   Save Changes
                 </Button>

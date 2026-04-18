@@ -1,8 +1,22 @@
 import Task, { ITask } from '../models/Task';
+import { parseLocalDate } from '../utils/dateUtils';
+
+function pad(value: number): string {
+  return value.toString().padStart(2, '0');
+}
+
+function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 export class TaskService {
   static async createTask(taskData: Partial<ITask>): Promise<ITask> {
-    const task = new Task(taskData);
+    const normalizedDate = parseLocalDate(taskData.date);
+    const payload: Partial<ITask> = { ...taskData, date: normalizedDate };
+    if (typeof payload.startTime === 'string' && !payload.startTime.trim()) {
+      delete payload.startTime;
+    }
+    const task = new Task(payload);
     return task.save();
   }
 
@@ -10,9 +24,9 @@ export class TaskService {
     const query: any = { userId };
 
     if (filters.date) {
-      const date = new Date(filters.date);
+      const date = parseLocalDate(filters.date);
       query.date = {
-        $gte: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+        $gte: date,
         $lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
       };
     }
@@ -21,13 +35,17 @@ export class TaskService {
     if (filters.category) query.category = filters.category;
     if (filters.priority) query.priority = filters.priority;
 
-    return Task.find(query).sort({ createdAt: -1 });
+    return Task.find(query).sort({ date: -1, createdAt: -1 });
   }
 
   static async updateTask(taskId: string, userId: string, updates: Partial<ITask>): Promise<ITask | null> {
+    const normalizedUpdates = { ...updates } as Partial<ITask>;
+    if (updates.date) {
+      normalizedUpdates.date = parseLocalDate(updates.date);
+    }
     return Task.findOneAndUpdate(
       { _id: taskId, userId },
-      updates,
+      normalizedUpdates,
       { new: true, runValidators: true }
     );
   }

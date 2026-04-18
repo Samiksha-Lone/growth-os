@@ -27,17 +27,22 @@ connectDB();
 // Middleware
 app.use(helmet({
   crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false,
 }));
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the uploads directory
-const uploadsDir = path.resolve(process.cwd(), 'uploads');
+// Serve static files from the uploads directory with explicit CORS headers
+const uploadsDir = path.join(process.cwd(), 'uploads');
 const avatarsDir = path.join(uploadsDir, 'avatars');
 if (!fs.existsSync(avatarsDir)) {
   fs.mkdirSync(avatarsDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+}, express.static(uploadsDir));
 
 // Routes
 app.use('/api/auth', authRoutes);

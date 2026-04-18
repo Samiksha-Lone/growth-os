@@ -147,9 +147,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAvatarUrl(null);
   };
 
-  const updateUser = (updates: any) => {
-    if (updates.name) setUserName(updates.name);
-    if (updates.email) setUserEmail(updates.email);
+  const updateUser = (updates: Partial<AuthContextValue>) => {
+    if (updates.userName) setUserName(updates.userName);
+    if (updates.userEmail) setUserEmail(updates.userEmail);
     if (updates.githubUrl !== undefined) setGithubUrl(updates.githubUrl);
     if (updates.linkedinUrl !== undefined) setLinkedinUrl(updates.linkedinUrl);
     if (updates.portfolioUrl !== undefined) setPortfolioUrl(updates.portfolioUrl);

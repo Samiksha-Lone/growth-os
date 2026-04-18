@@ -6,6 +6,7 @@ import { Card } from '../components/ui/Card';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/ui/Modal';
+import { FiFrown, FiMeh, FiSmile } from 'react-icons/fi';
 import type { Reflection } from '../lib/types';
 
 export default function ReflectionPage() {
@@ -15,17 +16,17 @@ export default function ReflectionPage() {
   const [mood, setMood] = useState(2); // 1: 😞, 2: 😐, 3: 🙂
   const [productivityScore, setProductivityScore] = useState(8);
   const [selectedReflection, setSelectedReflection] = useState<Reflection | null>(null);
-  
+
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery<Reflection[]>({
-    queryKey: ['reflection', 'list'],
+    queryKey: ['reflections'],
     queryFn: fetchReflections
   });
 
   const addMutation = useMutation({
     mutationFn: createReflection,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reflection', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['reflections'] });
       setGoodThings('');
       setBadThings('');
       setLearnings('');
@@ -37,120 +38,115 @@ export default function ReflectionPage() {
 
   return (
     <div className="page-stack">
-      <div className="section-header-row">
-        <h2 className="section-title" style={{ margin: 0 }}>Daily Mirror</h2>
+      <div className="flex items-center justify-between">
+        <h1 className="title-main">Daily Reflection</h1>
       </div>
 
       <div className="split-layout">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <Card className="primary" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-               <div className="reflection-section">
-                 <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#555', textTransform: 'uppercase' }}>What went well?</h3>
-                 <textarea
-                   className="field-textarea"
-                   value={goodThings}
-                   onChange={(e) => setGoodThings(e.target.value)}
-                   placeholder="Wins and positives..."
-                   rows={2}
-                   style={{ background: '#0a0a0a', fontSize: '0.9rem' }}
-                 />
-               </div>
+        <div className="stack-gap-lg">
+          <Card className="p-5 primary">
+            <div className="flex flex-col gap-3">
+              <div>
+                <span className="mb-2 uppercase label-sub">What went well?</span>
+                <textarea
+                  className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-20 !min-h-0"
+                  value={goodThings}
+                  onChange={(e) => setGoodThings(e.target.value)}
+                  placeholder="Write down your wins for today..."
+                />
+              </div>
 
-               <div className="reflection-section">
-                 <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#555', textTransform: 'uppercase' }}>What went wrong?</h3>
-                 <textarea
-                   className="field-textarea"
-                   value={badThings}
-                   onChange={(e) => setBadThings(e.target.value)}
-                   placeholder="Obstacles encountered..."
-                   rows={2}
-                   style={{ background: '#0a0a0a', fontSize: '0.9rem' }}
-                 />
-               </div>
+              <div>
+                <span className="mb-2 uppercase label-sub">Today's Challenges</span>
+                <textarea
+                  className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-20 !min-h-0"
+                  value={badThings}
+                  onChange={(e) => setBadThings(e.target.value)}
+                  placeholder="What was difficult or disrupted your flow?"
+                />
+              </div>
 
-               <div className="reflection-section">
-                 <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#555', textTransform: 'uppercase' }}>Learnings</h3>
-                 <textarea
-                   className="field-textarea"
-                   value={learnings}
-                   onChange={(e) => setLearnings(e.target.value)}
-                   placeholder="Lessons for tomorrow..."
-                   rows={2}
-                   style={{ background: '#0a0a0a', fontSize: '0.9rem' }}
-                 />
-               </div>
+              <div>
+                <span className="mb-2 uppercase label-sub">Lessons Learned</span>
+                <textarea
+                  className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-20 !min-h-0"
+                  value={learnings}
+                  onChange={(e) => setLearnings(e.target.value)}
+                  placeholder="Lessons to integrate into next session..."
+                />
+              </div>
 
-               <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '8px 0', borderTop: '1px solid #1a1a1a', paddingTop: '20px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#444' }}>MOOD</span>
-                     <div className="emoji-selector" style={{ background: '#0a0a0a', padding: '4px', borderRadius: '10px', border: '1px solid #1a1a1a', display: 'flex', gap: '4px' }}>
-                       <button className={`emoji-btn ${mood === 1 ? 'active' : ''}`} onClick={() => setMood(1)} style={{ fontSize: '1rem', padding: '6px', background: mood === 1 ? '#1a1a1a' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>😞</button>
-                       <button className={`emoji-btn ${mood === 2 ? 'active' : ''}`} onClick={() => setMood(2)} style={{ fontSize: '1rem', padding: '6px', background: mood === 2 ? '#1a1a1a' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>😐</button>
-                       <button className={`emoji-btn ${mood === 3 ? 'active' : ''}`} onClick={() => setMood(3)} style={{ fontSize: '1rem', padding: '6px', background: mood === 3 ? '#1a1a1a' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>🙂</button>
-                     </div>
+              <div className="flex items-center gap-8 py-4 mt-1 border-t border-border/10">
+                <div className="flex flex-col gap-2">
+                  <span className="label-sub uppercase !mb-0 opacity-40">Feeling?</span>
+                  <div className="flex gap-1.5 bg-[#000] p-1 rounded-xl border border-border/20">
+                    <button className={`p-2 rounded-lg text-lg transition-all flex items-center justify-center ${mood === 1 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(1)}><FiFrown /></button>
+                    <button className={`p-2 rounded-lg text-lg transition-all flex items-center justify-center ${mood === 2 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(2)}><FiMeh /></button>
+                    <button className={`p-2 rounded-lg text-lg transition-all flex items-center justify-center ${mood === 3 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(3)}><FiSmile /></button>
                   </div>
+                </div>
 
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#444' }}>PRODUCTIVITY SCORE</span>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#fff' }}>{productivityScore}/10</span>
-                     </div>
-                     <div style={{ width: '100%', height: '4px', background: '#0a0a0a', borderRadius: '2px', position: 'relative', marginTop: '4px' }}>
-                        <div style={{ width: `${productivityScore * 10}%`, height: '100%', background: '#3a86ff', borderRadius: '2px', transition: 'width 0.3s ease' }} />
-                        <input 
-                           type="range" min="1" max="10" value={productivityScore} 
-                           onChange={(e) => setProductivityScore(parseInt(e.target.value))}
-                           style={{ position: 'absolute', top: '-8px', left: 0, width: '100%', opacity: 0, cursor: 'pointer' }} 
-                        />
-                     </div>
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="label-sub uppercase !mb-0 opacity-40">Productivity Yield</span>
+                    <span className="text-[1.1rem] font-black text-white">{productivityScore} <span className="text-secondary/20 text-[0.75rem] uppercase ml-1">/ 10</span></span>
                   </div>
-               </div>
+                  <div className="w-full h-1 bg-[#0a0a0a] rounded-full relative group">
+                    <div className="h-full transition-all duration-300 rounded-full bg-accent" style={{ width: `${productivityScore * 10}%`, filter: 'drop-shadow(0 0 5px rgba(58,134,255,0.4))' }} />
+                    <input
+                      type="range" min="1" max="10" value={productivityScore}
+                      onChange={(e) => setProductivityScore(parseInt(e.target.value))}
+                      className="absolute top-1/2 left-0 w-full opacity-0 cursor-pointer -translate-y-1/2 !h-8"
+                    />
+                  </div>
+                </div>
+              </div>
 
-               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                  <Button 
-                    onClick={() => addMutation.mutate({ 
-                      goodThings: [goodThings], 
-                      badThings: [badThings], 
-                      learnings: [learnings], 
-                      mood, 
-                      productivityScore, 
-                      date: new Date().toISOString() 
-                    })} 
-                    style={{ background: '#3a86ff', color: '#fff', border: 'none', padding: '10px 24px', fontWeight: 700, fontSize: '0.9rem' }}
-                  >
-                    Save Reflection
-                  </Button>
-               </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => addMutation.mutate({
+                    goodThings: [goodThings],
+                    badThings: [badThings],
+                    learnings: [learnings],
+                    mood,
+                    productivityScore,
+                    date: new Date().toISOString()
+                  })}
+                  className="!px-10 !py-3 !bg-accent !text-white !font-black !text-[0.8rem] !rounded-xl active:scale-95 transition-all shadow-xl uppercase tracking-widest"
+                >
+                  SAVE REFLECTION
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
 
-        {/* Sidebar: Past Reflections */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h3 style={{ fontSize: '0.85rem', color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>Timeline</h3>
-          <div className="reflection-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* Sidebar: Your History */}
+        <div className="stack-gap-lg">
+          <span className="ml-1 uppercase label-sub">Your History</span>
+          <div className="stack-gap-md">
             {isLoading ? (
-               <Skeleton height="300px" />
+              <Skeleton height="300px" />
+            ) : data?.length === 0 ? (
+              <div className="p-10 bg-[#000] rounded-2xl border border-dashed border-border/10 text-center text-secondary/20 text-[0.85rem] font-bold italic">
+                Logs will appear here.
+              </div>
             ) : data?.slice(0, 5).map((entry) => (
-              <div 
-                key={entry._id} 
-                className="compact-card" 
-                style={{ border: '1px solid #1a1a1a', background: 'transparent', transition: 'all 0.2s ease', cursor: 'pointer' }}
+              <div
+                key={entry._id}
+                className="group p-5 bg-[#000] border border-border/10 rounded-2xl flex justify-between items-center cursor-pointer transition-all hover:border-border/30"
                 onClick={() => setSelectedReflection(entry)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>
-                      {new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                    <div style={{ color: '#555', fontSize: '0.75rem', fontWeight: 500 }}>
-                      {entry.goodThings[0] ? entry.goodThings[0].substring(0, 35) + '...' : 'No notes recorded'}
-                    </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="font-black text-[0.95rem] text-white uppercase tracking-tight">
+                    {new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
-                  <div style={{ color: '#222' }}>
-                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  <div className="text-secondary/40 text-[0.75rem] font-bold italic truncate w-[160px]">
+                    {entry.goodThings[0] || 'Metadata logged.'}
                   </div>
+                </div>
+                <div className="transition-colors text-secondary/20 group-hover:text-white">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                 </div>
               </div>
             ))}
@@ -158,54 +154,50 @@ export default function ReflectionPage() {
         </div>
       </div>
 
-      <Modal 
-        open={!!selectedReflection} 
+      <Modal
+        open={!!selectedReflection}
         onClose={() => setSelectedReflection(null)}
-        title={selectedReflection ? new Date(selectedReflection.date).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+        title={selectedReflection ? new Date(selectedReflection.date).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
       >
         {selectedReflection && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#0a0a0a', borderRadius: '16px', border: '1px solid #222' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                 <div style={{ fontSize: '1.5rem', background: '#1a1a1a', padding: '8px', borderRadius: '12px' }}>
-                   {selectedReflection.mood === 1 ? '😞' : selectedReflection.mood === 2 ? '😐' : '🙂'}
-                 </div>
-                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                   <span style={{ fontSize: '0.7rem', color: '#555', fontWeight: 700, textTransform: 'uppercase' }}>Daily Mood</span>
-                   <span style={{ fontWeight: 600 }}>{selectedReflection.mood === 1 ? 'Challenging' : selectedReflection.mood === 2 ? 'Neutral' : 'Positive'}</span>
-                 </div>
+          <div className="pb-6 stack-gap-lg">
+            <div className="flex items-center justify-between p-6 bg-[#000] rounded-3xl border border-border/10">
+              <div className="flex items-center gap-5">
+                <div className="text-2xl bg-[#0a0a0a] p-4 rounded-2xl border border-border/10 shadow-inner text-white flex items-center justify-center">
+                  {selectedReflection.mood === 1 ? <FiFrown /> : selectedReflection.mood === 2 ? <FiMeh /> : <FiSmile />}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px] mb-1">Mood</span>
+                  <span className="font-black text-white text-[1.1rem] tracking-tight">{selectedReflection.mood === 1 ? 'Challenging' : selectedReflection.mood === 2 ? 'Steady' : 'Flow'}</span>
+                </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#3a86ff' }}>{selectedReflection.productivityScore}/10</div>
-                 <div style={{ fontSize: '0.7rem', color: '#555', fontWeight: 700, textTransform: 'uppercase' }}>Productivity</div>
+              <div className="text-right">
+                <div className="text-[2.2rem] font-black text-accent tracking-tighter leading-none">{selectedReflection.productivityScore}/10</div>
+                <div className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px] mt-2">Score</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-               <div>
-                 <h4 style={{ fontSize: '0.8rem', color: '#06d6a0', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>What went well?</h4>
-                 <p style={{ color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, padding: '12px', background: '#0a0a0a', borderRadius: '10px', borderLeft: '3px solid #06d6a0' }}>
-                   {selectedReflection.goodThings.join('\n') || 'N/A'}
-                 </p>
-               </div>
+            <div className="mt-2 stack-gap-md">
+              <div className="stack-gap-md p-6 bg-[#050505]/40 rounded-3xl border border-border/10">
+                <span className="text-[0.65rem] text-[#06d6a0] font-black uppercase tracking-[2px]">Wins & Positives</span>
+                <p className="text-secondary/60 text-[0.9rem] font-bold leading-relaxed italic">
+                  {selectedReflection.goodThings.join('\n') || 'No data recorded.'}
+                </p>
+              </div>
 
-               <div>
-                 <h4 style={{ fontSize: '0.8rem', color: '#ef476f', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>What went wrong?</h4>
-                 <p style={{ color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, padding: '12px', background: '#0a0a0a', borderRadius: '10px', borderLeft: '3px solid #ef476f' }}>
-                   {selectedReflection.badThings.join('\n') || 'N/A'}
-                 </p>
-               </div>
+              <div className="stack-gap-md p-6 bg-[#050505]/40 rounded-3xl border border-border/10">
+                <span className="text-[0.65rem] text-[#ef476f] font-black uppercase tracking-[2px]">Challenges</span>
+                <p className="text-secondary/60 text-[0.9rem] font-bold leading-relaxed italic">
+                  {selectedReflection.badThings.join('\n') || 'No data recorded.'}
+                </p>
+              </div>
 
-               <div>
-                 <h4 style={{ fontSize: '0.8rem', color: '#ffd166', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>Learnings</h4>
-                 <p style={{ color: '#aaa', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, padding: '12px', background: '#0a0a0a', borderRadius: '10px', borderLeft: '3px solid #ffd166' }}>
-                   {selectedReflection.learnings.join('\n') || 'N/A'}
-                 </p>
-               </div>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-               <Button onClick={() => setSelectedReflection(null)} style={{ background: '#1d1d1d', border: '1px solid #2a2a2a', color: '#fff', padding: '10px 20px' }}>Close</Button>
+              <div className="stack-gap-md p-6 bg-[#050505]/40 rounded-3xl border border-border/10">
+                <span className="text-[0.65rem] text-[#ffd166] font-black uppercase tracking-[2px]">Lessons Learned</span>
+                <p className="text-secondary/60 text-[0.9rem] font-bold leading-relaxed italic">
+                  {selectedReflection.learnings.join('\n') || 'No data recorded.'}
+                </p>
+              </div>
             </div>
           </div>
         )}

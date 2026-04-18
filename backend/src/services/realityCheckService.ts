@@ -2,9 +2,13 @@ import Task from '../models/Task';
 
 export class RealityCheckService {
   static async getRealityCheck(userId: string, date: Date): Promise<any> {
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 1);
+    // Build start/end of day using local date components to avoid UTC offset issues
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+
+    const startOfDay = new Date(y, m, d, 0, 0, 0, 0);
+    const endOfDay = new Date(y, m, d + 1, 0, 0, 0, 0);
 
     const tasks = await Task.find({
       userId,

@@ -1,13 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import { AnalyticsService } from '../services/analyticsService';
+import { parseLocalDate } from '../utils/dateUtils';
 
 export class AnalyticsController {
   static async getDailyCompletionRate(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const date = req.query.date ? new Date(req.query.date as string) : new Date();
+      const date = req.query.date ? parseLocalDate(req.query.date as string) : parseLocalDate(undefined);
       const rate = await AnalyticsService.getDailyCompletionRate(req.user._id, date);
 
       res.json({ date: date.toISOString().split('T')[0], completionRate: rate });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  static async getWeeklyTrend(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const stats = await AnalyticsService.getWeeklyCompletionTrend(req.user._id);
+      res.json(stats);
     } catch (error: any) {
       next(error);
     }

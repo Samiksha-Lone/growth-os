@@ -3,7 +3,6 @@ import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/ui/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import PlannerPage from './pages/PlannerPage';
-import TrackerPage from './pages/TrackerPage';
 import ReflectionPage from './pages/ReflectionPage';
 import HabitsPage from './pages/HabitsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -16,7 +15,6 @@ import LoginPage from './pages/LoginPage';
 const protectedRoutes = [
   { path: '/dashboard', element: <DashboardPage /> },
   { path: '/planner', element: <PlannerPage /> },
-  { path: '/tracker', element: <TrackerPage /> },
   { path: '/reflection', element: <ReflectionPage /> },
   { path: '/habits', element: <HabitsPage /> },
   { path: '/analytics', element: <AnalyticsPage /> },
