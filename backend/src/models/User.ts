@@ -42,22 +42,17 @@ const userSchema = new Schema<IUser>({
 });
 
 // Hash password before saving
-userSchema.pre('save', function (this: IUser, next: any) {
+userSchema.pre('save', async function () {
   // Only run this function if password was actually modified
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password')) return;
 
-  // Hash password with cost of 12
-  bcrypt.genSalt(10, (err, salt) => {
-    if (err) return next(err);
-
-    bcrypt.hash(this.password as string, salt as string, (err, hash) => {
-      if (err) return next(err);
-
-      // Override the cleartext password with the hashed one
-      this.password = hash as string;
-      next();
-    });
-  });
+  try {
+    // Hash password with cost of 10
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  } catch (err) {
+    throw err;
+  }
 });
 
 // Compare password method

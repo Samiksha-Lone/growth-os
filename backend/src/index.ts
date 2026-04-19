@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import connectDB from './config/database';
+import { initializeJobScheduler } from './jobs/taskScheduler';
 import authRoutes from './routes/auth';
 import taskRoutes from './routes/tasks';
 import reflectionRoutes from './routes/reflections';
@@ -23,6 +24,9 @@ const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
 connectDB();
+
+// Initialize background job scheduler
+initializeJobScheduler();
 
 // Middleware
 app.use(helmet({

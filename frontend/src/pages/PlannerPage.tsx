@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createTask, fetchTasks, deleteTask, updateTask, fetchReflections, fetchHabits } from '../api/growthos';
+import { createTask, fetchTasks, deleteTask, updateTask, fetchHabits } from '../api/growthos';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { TaskItem } from '../components/TaskItem';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/ui/Modal';
-import type { Task, Reflection, Habit } from '../lib/types';
+import type { Task, Habit } from '../lib/types';
 
 const statusOrder = ['Pending', 'In Progress', 'Completed', 'Missed'] as const;
 
@@ -53,11 +53,6 @@ export default function PlannerPage() {
   const habitsQuery = useQuery<Habit[]>({
     queryKey: ['habits'],
     queryFn: () => fetchHabits()
-  });
-
-  const reflectionsQuery = useQuery<Reflection[]>({
-    queryKey: ['reflections'],
-    queryFn: () => fetchReflections()
   });
 
   const filteredTasks = useMemo(() => data?.filter(t => t.status === activeTab) ?? [], [data, activeTab]);
@@ -121,7 +116,7 @@ export default function PlannerPage() {
         <div className="stack-gap-lg">
 
           {/* Add Task Form */}
-          <Card className="primary p-6">
+          <Card className="p-6 primary">
             <div className="stack-gap-md">
               <input
                 className="field-input !h-12 !text-[1rem] !font-semibold !px-5"
@@ -194,7 +189,7 @@ export default function PlannerPage() {
                </div>
             </div>
 
-            <div className="task-preview-list px-6">
+            <div className="px-6 task-preview-list">
               {isLoading ? (
                 <Skeleton height="200px" />
               ) : filteredTasks.length === 0 ? (
@@ -216,19 +211,6 @@ export default function PlannerPage() {
             </div>
           </Card>
 
-          {activeTab === 'Missed' && (
-            <Card className="primary compact-card border-l-[3px] !border-l-[#ef476f] p-6">
-               <span className="label-sub uppercase !text-[#ef476f] !mb-2 opacity-60">Missed Task Review</span>
-               <p className="text-secondary/60 text-[0.8rem] mb-4 font-bold italic">What prevented you from finishing this?</p>
-               <textarea
-                 className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-24"
-                 placeholder="Any notes on why this wasn't finished?"
-               />
-               <div className="flex justify-end mt-4">
-                 <Button className="!bg-accent/10 !border !border-accent/20 !text-accent !text-[0.65rem] !font-black !px-6 !py-2 !rounded-xl active:scale-95 transition-all uppercase tracking-widest leading-none">SAVE ANALYSIS</Button>
-               </div>
-            </Card>
-          )}
         </div>
 
         {/* Sidebar */}
@@ -236,7 +218,7 @@ export default function PlannerPage() {
 
           {/* Top 3 Priorities */}
           <div className="stack-gap-md">
-            <span className="label-sub ml-1 uppercase">Top Priorities</span>
+            <span className="ml-1 uppercase label-sub">Top Priorities</span>
             <div className="flex flex-col gap-3 mt-4">
               {topPriorities.length === 0 ? (
                 <div className="p-10 bg-[#000] rounded-2xl border border-dashed border-border/20 text-center text-secondary/20 text-[0.8rem] font-bold italic">
@@ -256,9 +238,9 @@ export default function PlannerPage() {
             </div>
           </div>
 
-          <Card className="primary p-5 stack-gap-md">
+          <Card className="p-5 primary stack-gap-md">
             <span className="label-sub !mb-0">Daily Habits</span>
-            <div className="stack-gap-md mt-6">
+            <div className="mt-6 stack-gap-md">
               {habitsQuery.isLoading ? (
                 <Skeleton height="160px" />
               ) : !habitsQuery.data?.length ? (
@@ -268,7 +250,7 @@ export default function PlannerPage() {
                 const streak = calcStreak(habit.completedDates || []);
                 return (
                   <div key={habit._id} className={`${i > 0 ? 'pt-5 border-t border-[#0a0a0a]' : ''}`}>
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center justify-between mb-3">
                       <span className={`font-black text-[0.9rem] ${isToday ? 'text-secondary/30' : 'text-white'}`}>{habit.name}</span>
                       {streak > 0 && (
                         <span className="bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20 text-[0.6rem] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
@@ -288,31 +270,6 @@ export default function PlannerPage() {
             </div>
           </Card>
 
-          {/* Past Reflections */}
-          <div className="stack-gap-md">
-            <span className="label-sub ml-1 uppercase">Recent Reflections</span>
-            <div className="flex flex-col gap-3 mt-4">
-              {reflectionsQuery.isLoading ? (
-                <Skeleton height="150px" />
-              ) : !reflectionsQuery.data?.length ? (
-                <div className="p-8 bg-[#000] rounded-2xl border border-dashed border-border/20 text-center text-secondary/20 text-[0.8rem] font-bold italic">
-                  Logs will appear here
-                </div>
-              ) : reflectionsQuery.data?.slice(0, 3).map(ref => (
-                <Card key={ref._id} className="secondary !min-h-0 !p-5 border border-border/10">
-                  <div className="flex justify-between items-center mb-3">
-                     <span className="font-black text-[0.8rem] text-white uppercase tracking-[2px]">{new Date(ref.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                     <span className={`text-[0.6rem] font-black uppercase tracking-widest ${ref.productivityScore >= 7 ? 'text-[#06d6a0]' : ref.productivityScore >= 4 ? 'text-[#ffd166]' : 'text-[#ef476f]'}`}>
-                       {ref.productivityScore}/10 SCORE
-                     </span>
-                  </div>
-                  <p className="text-secondary/60 text-[0.8rem] font-bold leading-relaxed line-clamp-2 italic">
-                    {ref.goodThings[0] || 'No summary provided.'}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -321,7 +278,7 @@ export default function PlannerPage() {
         {editingTask && (
           <div className="flex flex-col gap-6">
              <div className="flex flex-col gap-2">
-                <label className="label-sub uppercase ml-1">Task Title</label>
+                <label className="ml-1 uppercase label-sub">Task Title</label>
                 <input
                   className="field-input !h-12 !px-5 !text-[1rem]"
                   value={editingTask.title}
@@ -332,7 +289,7 @@ export default function PlannerPage() {
 
              <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                   <label className="label-sub uppercase ml-1">Category</label>
+                   <label className="ml-1 uppercase label-sub">Category</label>
                    <select className="field-input !h-12 !px-4 uppercase tracking-widest text-[0.8rem] font-black" value={editingTask.category} onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value as Task['category'] })}>
                      <option value="Work">Work</option>
                      <option value="Study">Study</option>
@@ -341,7 +298,7 @@ export default function PlannerPage() {
                    </select>
                 </div>
                 <div className="flex flex-col gap-2">
-                   <label className="label-sub uppercase ml-1">Priority</label>
+                   <label className="ml-1 uppercase label-sub">Priority</label>
                    <select className="field-input !h-12 !px-4 uppercase tracking-widest text-[0.8rem] font-black" value={editingTask.priority} onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as Task['priority'] })}>
                      <option value="High">High</option>
                      <option value="Medium">Medium</option>

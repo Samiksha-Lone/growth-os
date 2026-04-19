@@ -86,8 +86,8 @@ export default function PomodoroPage() {
         </div>
       </div>
 
-      <Card className="primary p-12">
-        <div className="w-full flex flex-col items-center gap-12">
+      <Card className="p-12 primary">
+        <div className="flex flex-col items-center w-full gap-12">
           {/* SVG Ring Timer */}
           <div className="w-[200px] h-[200px] relative">
             <svg width="200" height="200" viewBox="0 0 100 100" className="-rotate-90">
@@ -103,7 +103,7 @@ export default function PomodoroPage() {
                 style={{ filter: `drop-shadow(0 0 8px ${currentSession.label === 'Focus' ? 'rgba(58,134,255,0.3)' : 'rgba(6,214,160,0.3)'})` }}
               />
             </svg>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center w-full">
+            <div className="absolute w-full text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
               <div className="text-[3.8rem] font-black text-white tracking-[-4px] font-mono leading-none">
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </div>
@@ -129,24 +129,22 @@ export default function PomodoroPage() {
           </div>
 
           {/* Session info */}
-          <div className="flex items-center justify-between w-full max-w-[480px] px-10 py-6 bg-[#000] rounded-3xl border border-border/10 shadow-inner">
-            <div className="flex flex-col gap-4">
-               <span className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px]">Estimated Finish ~ {new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-               <div className="flex items-center gap-3">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-all duration-700 ${
-                         i < sessionsDone ? 'bg-accent shadow-[0_0_12px_rgba(58,134,255,0.5)]' : 'bg-[#0a0a0a] border border-white/5'
-                      }`}
-                    />
-                  ))}
-               </div>
-            </div>
-            
-            <div className="text-right">
-              <div className="text-[1.4rem] font-black text-white tracking-tighter leading-none mb-1">{currentSession.duration}:00</div>
-              <div className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px]">Goal</div>
+          <div className="w-full max-w-[520px] px-4 py-4 bg-[#05070a] rounded-3xl border border-border/10 shadow-inner">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="space-y-0.5">
+                <div className="text-[0.62rem] text-secondary/40 uppercase tracking-[2px] font-black">Finish</div>
+                <div className="text-base font-black text-white">{new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-[0.62rem] text-secondary/40 uppercase tracking-[2px] font-black">Session</div>
+                <div className="text-base font-black text-white">{currentSession.label}</div>
+                <div className="text-[0.75rem] text-secondary/50 uppercase tracking-[1px]">{currentSession.duration}:00 min</div>
+              </div>
+              <div className="space-y-0.5">
+                <div className="text-[0.62rem] text-secondary/40 uppercase tracking-[2px] font-black">Progress</div>
+                <div className="text-base font-black text-white">{Math.round(progress)}%</div>
+                <div className="text-[0.75rem] text-secondary/50 uppercase tracking-[1px]">{sessionsDone} session{sessionsDone !== 1 ? 's' : ''} done</div>
+              </div>
             </div>
           </div>
         </div>

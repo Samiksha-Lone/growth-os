@@ -743,12 +743,14 @@ input[type="time"].field-input {
 }
 
 .modal-overlay {
-  @apply fixed inset-0 grid place-items-center z-50;
-  background: rgba(15, 15, 15, 0.85);
+  @apply fixed inset-0 grid place-items-center z-50 px-4 py-6;
+  background: rgba(15, 15, 15, 0.9);
 }
 
 .modal-panel {
-  @apply w-full max-w-135 bg-card border border-border rounded-3xl p-6;
+  @apply w-full max-w-[700px] bg-card border border-border rounded-3xl p-6 shadow-2xl;
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -768,6 +770,7 @@ input[type="time"].field-input {
 
 .modal-body {
   @apply text-secondary;
+  overflow: hidden;
 }
 
 .task-list-empty,

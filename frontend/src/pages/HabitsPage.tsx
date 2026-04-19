@@ -139,6 +139,8 @@ export default function HabitsPage() {
     [habits]
   );
 
+  const completionRate = habits.length > 0 ? Math.round((doneToday / habits.length) * 100) : 0;
+
   return (
     <div className="page-stack">
       <div className="flex items-center justify-between">
@@ -159,13 +161,28 @@ export default function HabitsPage() {
       {/* ── HABITS TAB ── */}
       {activeTab === 'Habits' && (
         <div className="split-layout">
-          {/* Left: Daily habit list */}
+          {/* Left: Habit manager */}
           <div className="stack-gap-lg">
-            <Card className="primary p-6">
-              <span className="mb-6 uppercase label-sub">Today's Checklist</span>
+            <Card className="p-6 primary">
+              <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
+                <div className="rounded-3xl border border-border p-4 bg-[#090909]">
+                  <span className="uppercase label-sub text-[0.65rem] text-secondary/50 tracking-[2px]">Completed Today</span>
+                  <div className="text-[2rem] font-black text-white mt-2">{doneToday}</div>
+                  <div className="text-[0.75rem] text-secondary/40 mt-2">of {habits.length} habits</div>
+                </div>
+                <div className="rounded-3xl border border-border p-4 bg-[#090909]">
+                  <span className="uppercase label-sub text-[0.65rem] text-secondary/50 tracking-[2px]">Completion Rate</span>
+                  <div className="text-[2rem] font-black text-white mt-2">{completionRate}%</div>
+                  <div className="text-[0.75rem] text-secondary/40 mt-2">Goal progress today</div>
+                </div>
+                <div className="rounded-3xl border border-border p-4 bg-[#090909]">
+                  <span className="uppercase label-sub text-[0.65rem] text-secondary/50 tracking-[2px]">Best Streak</span>
+                  <div className="text-[2rem] font-black text-white mt-2">{bestStreak}</div>
+                  <div className="text-[0.75rem] text-secondary/40 mt-2">Days in a row</div>
+                </div>
+              </div>
 
-              {/* Add habit */}
-              <div className="flex gap-3 mt-4 mb-8">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <input
                   className="field-input !h-12 !text-[0.95rem] !px-4 !flex-1"
                   value={draft}
@@ -175,19 +192,24 @@ export default function HabitsPage() {
                 />
                 <Button
                   onClick={() => draft.trim() && createMutation.mutate(draft.trim())}
-                  className="!h-12 !px-8 !bg-accent !text-white !text-[0.8rem] !font-black !rounded-xl transition-all shadow-xl hover:scale-105 active:scale-95"
+                  className="!h-12 !w-full sm:!w-auto !px-8 !bg-accent !text-white !text-[0.8rem] !font-black !rounded-xl transition-all shadow-xl hover:scale-105 active:scale-95"
                 >
                   ADD HABIT
                 </Button>
               </div>
+            </Card>
 
-              {/* Habit list */}
-              <div className="stack-gap-md">
+            <Card className="primary !p-0 overflow-hidden">
+              <div className="px-6 py-4 bg-[#050505] border-b border-border flex items-center justify-between">
+                <span className="label-sub uppercase !text-[0.65rem] tracking-[2px]">Your Habit List</span>
+                <span className="text-[0.75rem] text-secondary/40 uppercase tracking-[2px]">{habits.length} items</span>
+              </div>
+              <div className="p-6 stack-gap-sm">
                 {isLoading ? (
                   <Skeleton height="200px" />
                 ) : habits.length === 0 ? (
                   <div className="py-16 text-center text-secondary/40 text-[0.9rem] italic font-bold">
-                    No active habits. Begin your first streak above.
+                    No active habits yet. Start one above.
                   </div>
                 ) : (
                   <div className="stack-gap-sm">
@@ -198,47 +220,43 @@ export default function HabitsPage() {
                       return (
                         <div
                           key={habit._id}
-                          className={`group flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${isCheckedToday ? 'border-[#06d6a0]/20 bg-[#06d6a0]/[0.02]' : 'border-[#111] bg-transparent hover:border-[#222]'}`}
+                          className={`group flex flex-col gap-4 p-5 rounded-3xl border transition-all duration-300 ${isCheckedToday ? 'border-[#06d6a0]/20 bg-[#06120e]' : 'border-[#111] bg-[#050505]/90 hover:border-[#222]'}`}
                         >
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={`task-checkbox ${isCheckedToday ? 'checked' : ''} w-5 h-5 transition-all duration-300`}
-                              onClick={() => !isCheckedToday && checkInMutation.mutate(habit._id)}
-                            >
-                              {isCheckedToday && (
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                                  <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                              )}
-                            </div>
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <div className={`font-black text-[1rem] transition-colors duration-300 ${isCheckedToday ? 'text-secondary/30' : 'text-white'}`}>
+                              <div className={`font-black text-[1rem] ${isCheckedToday ? 'text-[#06d6a0]' : 'text-white'}`}>
                                 {habit.name}
                               </div>
-                              <div className={`text-[0.65rem] font-black uppercase tracking-[2px] mt-0.5 ${isCheckedToday ? 'text-[#06d6a0]' : 'text-secondary/40'}`}>
-                                {isCheckedToday ? 'Habit completed' : 'Daily target'}
+                              <div className="text-[0.75rem] uppercase tracking-[2px] text-secondary/40 mt-1">
+                                {isCheckedToday ? 'Completed today' : 'Pending target'}
                               </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className={`rounded-full px-3 py-1 text-[0.7rem] font-black uppercase tracking-[2px] ${isCheckedToday ? 'bg-[#06d6a0]/10 text-[#06d6a0]' : 'bg-[#111] text-secondary'}`}>
+                                {isCheckedToday ? 'SECURED' : 'CHECK IN'}
+                              </div>
+                              {streak > 0 && (
+                                <div className="rounded-full px-3 py-1 bg-[#1a1a1a] text-[0.7rem] font-black uppercase tracking-[2px] text-[#06d6a0]">
+                                  🔥 {streak}d streak
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            {streak > 0 && (
-                              <div className="bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20 px-2 py-1 rounded text-[0.65rem] font-black uppercase tracking-widest leading-none">
-                                🔥 {streak}D STREAK
-                              </div>
-                            )}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
                             <button
                               onClick={() => !isCheckedToday && checkInMutation.mutate(habit._id)}
                               disabled={isCheckedToday}
-                              className={`px-5 py-2 rounded-xl text-[0.7rem] font-black uppercase tracking-widest transition-all border ${isCheckedToday ? 'bg-[#06d6a0]/10 text-[#06d6a0] border-[#06d6a0]/20' : 'bg-[#0f0f0f] text-secondary border-[#1a1a1a] hover:text-white hover:border-gray-700'}`}
+                              className={`min-w-[120px] px-5 py-3 rounded-2xl text-[0.8rem] font-black uppercase tracking-widest transition-all ${isCheckedToday ? 'bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20 cursor-default' : 'bg-[#3a86ff] text-white hover:bg-[#2886ff]'}`}
                             >
-                              {isCheckedToday ? 'SECURED' : 'CHECK IN'}
+                              {isCheckedToday ? 'DONE' : 'CHECK IN'}
                             </button>
                             <button
                               onClick={() => deleteHabitMutation.mutate(habit._id)}
-                              className="p-2 text-secondary/20 hover:text-[#ef476f] transition-colors opacity-0 group-hover:opacity-100"
+                              className="text-secondary/40 hover:text-[#ef476f] transition-colors"
+                              aria-label="Delete habit"
                             >
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             </button>
                           </div>
                         </div>
@@ -250,55 +268,36 @@ export default function HabitsPage() {
             </Card>
           </div>
 
-          {/* Right: Daily summary */}
+          {/* Right: habit summary */}
           <div className="stack-gap-lg">
             <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Daily Progress</span>
-              <div className="stack-gap-sm">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{doneToday}</span>
-                  <span className="label-sub uppercase !text-[0.7rem] text-secondary/60">/ {habits.length} Secured</span>
+              <span className="mb-4 uppercase label-sub">Habit Summary</span>
+              <div className="stack-gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-secondary/40 uppercase text-[0.7rem] tracking-[2px]">Total Habits</span>
+                  <span className="font-black text-white">{habits.length}</span>
                 </div>
-                <div className="h-1 bg-[#0a0a0a] rounded-full mt-3 overflow-hidden">
-                  <div className={`h-full transition-all duration-700 ${doneToday === habits.length && habits.length > 0 ? 'bg-[#06d6a0]' : 'bg-accent'}`} style={{ width: habits.length > 0 ? `${Math.round((doneToday / habits.length) * 100)}%` : '0%' }} />
+                <div className="flex items-center justify-between">
+                  <span className="text-secondary/40 uppercase text-[0.7rem] tracking-[2px]">Done Today</span>
+                  <span className="font-black text-accent">{doneToday}</span>
                 </div>
-                <div className="text-[0.65rem] font-black text-secondary/30 uppercase tracking-widest mt-2 text-right">
-                  {habits.length > 0 ? `${Math.round((doneToday / habits.length) * 100)}% Success Rate` : 'No habits yet'}
+                <div className="flex items-center justify-between">
+                  <span className="text-secondary/40 uppercase text-[0.7rem] tracking-[2px]">Success Rate</span>
+                  <span className="font-black text-[#06d6a0]">{completionRate}%</span>
                 </div>
               </div>
             </Card>
 
             <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Best Streak</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{bestStreak}</span>
-                <span className="label-sub uppercase !text-[0.7rem] text-secondary/60">Days Streak</span>
+              <span className="mb-4 uppercase label-sub">Momentum</span>
+              <div className="text-[2.2rem] font-black text-white mb-2">{bestStreak} days</div>
+              <div className="h-3 bg-[#0a0a0a] rounded-full overflow-hidden">
+                <div className="h-full bg-[#06d6a0] transition-all" style={{ width: `${Math.min(100, bestStreak * 10)}%` }} />
               </div>
-              <div className={`text-[0.65rem] font-black uppercase tracking-widest mt-2 ${bestStreak > 0 ? 'text-[#06d6a0]' : 'text-secondary/20'}`}>
-                {bestStreak > 0 ? 'STAYING CONSISTENT' : 'STARTING FRESH'}
+              <div className="text-[0.75rem] text-secondary/40 uppercase tracking-[2px] mt-3">
+                {bestStreak > 0 ? 'Keep the streak alive' : 'Start building momentum'}
               </div>
             </Card>
-
-            {habits.length > 0 && (
-              <Card className="primary !p-6">
-                <span className="mb-5 uppercase label-sub">All Habits</span>
-                <div className="stack-gap-xs">
-                  {habits.map(h => {
-                    const done = h.completedDates?.some(d => toLocalDateKey(d) === today);
-                    const streak = calcStreak(h.completedDates ?? []);
-                    return (
-                      <div key={h._id} className="flex justify-between items-center py-2.5 border-b border-[#0a0a0a] last:border-0">
-                        <span className={`text-[0.85rem] font-bold ${done ? 'text-secondary/30' : 'text-[#bbb]'}`}>{h.name}</span>
-                        <div className="flex items-center gap-4">
-                          {streak > 0 && <span className="text-[0.65rem] text-[#06d6a0] font-black">🔥{streak}</span>}
-                          <span className={`text-[1rem] font-black ${done ? 'text-[#06d6a0]' : 'text-[#1a1a1a]'}`}>{done ? '✓' : '—'}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            )}
           </div>
         </div>
       )}
@@ -310,7 +309,7 @@ export default function HabitsPage() {
             <Card className="p-6 primary">
               <span className="mb-4 uppercase label-sub">Goal Progress</span>
 
-              <div className="stack-gap-md mb-8 mt-4">
+              <div className="mt-4 mb-8 stack-gap-md">
                 <div className="flex gap-4">
                   <input
                     className="field-input !h-12 !text-[0.95rem] !px-4 !flex-1"
