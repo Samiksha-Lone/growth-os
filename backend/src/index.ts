@@ -33,7 +33,20 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
   crossOriginEmbedderPolicy: false,
 }));
-app.use(cors());
+
+// CORS configuration
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : [
+      'http://localhost:3000',
+      'http://localhost:4173',
+      'https://growth-os-chi.vercel.app'
+    ];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json());
 
 // Serve static files from the uploads directory with explicit CORS headers
