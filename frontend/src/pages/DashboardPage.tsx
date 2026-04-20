@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '../components/ui/Card';
 import { StatCard } from '../components/StatCard';
-import { fetchDashboardStats, fetchTasks, fetchRealitySummary, fetchWeeklyChartData } from '../api/growthos';
+import { fetchDashboardStats, fetchTasks, fetchRealitySummary, fetchWeeklyChartData, updateTask } from '../api/growthos';
 import { Skeleton } from '../components/ui/Skeleton';
 import { TaskItem } from '../components/TaskItem';
 import { useAuth } from '../hooks/useAuth';
@@ -20,6 +20,7 @@ function getGreeting(name: string | null): { text: string; sub: string } {
 export default function DashboardPage() {
   const { userName } = useAuth();
   const greeting = useMemo(() => getGreeting(userName), [userName]);
+  const queryClient = useQueryClient();
 
   const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
@@ -43,6 +44,14 @@ export default function DashboardPage() {
   const todayTasks = useMemo(() => {
     return tasksQuery.data?.filter(t => t.date?.startsWith(localDate)).slice(0, 5) ?? [];
   }, [tasksQuery.data, localDate]);
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+    }
+  });
 
   const stats = statsQuery.data;
   const reality = realityQuery.data;
@@ -112,20 +121,38 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   todayTasks.map((task, i) => (
-                    <div key={task._id} className={`flex justify-between items-center py-3 md:py-4 border-b border-[#0a0a0a] last:border-0 gap-3`}>
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''} w-[18px] h-[18px] transition-all flex-shrink-0`}>
-                          {task.status === 'Completed' && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
+                    <div key={task._id} className={`flex justify-between items-center py-3 md:py-4 px-3 md:px-4 border-b border-[#0a0a0a] last:border-0 gap-3 rounded-lg transition-all duration-200 hover:bg-[#1a1a1a]/40 group cursor-pointer`}>
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div 
+                          className={`task-checkbox transition-all duration-200 flex-shrink-0`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateTaskMutation.mutate({ id: task._id, updates: { status: task.status === 'Completed' ? 'Pending' : 'Completed' }});
+                          }}
+                          style={{
+                            backgroundColor: task.status === 'Completed' ? '#00bfff' : 'transparent',
+                            borderColor: task.status === 'Completed' ? '#00bfff' : '#666'
+                          }}
+                        >
+                          {task.status === 'Completed' && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          )}
                         </div>
-                        <div className="min-w-0">
-                          <div className={`${task.status === 'Completed' ? 'text-secondary/30 line-through' : 'text-white'} font-black text-[0.95rem] md:text-[1rem] leading-tight mb-0.5 break-words line-clamp-1 sm:line-clamp-none`}>{task.title}</div>
-                          {task.startTime && <div className="text-[0.6rem] md:text-[0.65rem] text-secondary/30 font-black uppercase tracking-widest leading-none">⏰ {task.startTime}</div>}
+                        <div className="min-w-0 flex-1">
+                          <div className={`${task.status === 'Completed' ? 'text-secondary/30 line-through' : 'text-white'} font-black text-[0.9rem] md:text-[0.95rem] leading-tight mb-1 break-words`}>{task.title}</div>
+                          <div className="flex items-center gap-2">
+                            {task.startTime && <div className="text-[0.6rem] md:text-[0.65rem] text-secondary/40 font-black uppercase tracking-widest leading-none">⏰ {task.startTime}</div>}
+                            {task.status === 'In Progress' && <span className="text-[0.55rem] text-[#3a86ff] font-black uppercase tracking-wider bg-[#3a86ff]/10 px-1.5 py-0.5 rounded">ACTIVE</span>}
+                          </div>
                         </div>
                       </div>
-                      <span className={`flex-shrink-0 text-[0.55rem] md:text-[0.65rem] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${
-                        task.category === 'Work' ? 'bg-[#3a86ff]/10 text-[#3a86ff] border border-[#3a86ff]/20' :
-                        task.category === 'Study' ? 'bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20' :
-                        'bg-[#1a1a1a] text-secondary/60 border border-border/10'
+                      <span className={`flex-shrink-0 text-[0.5rem] md:text-[0.6rem] font-black px-2 py-1 rounded-lg uppercase tracking-wider whitespace-nowrap transition-opacity duration-200 ${task.status === 'Completed' ? 'opacity-40' : ''} ${
+                        task.category === 'Work' ? 'bg-[#3a86ff]/10 text-[#3a86ff] border border-[#3a86ff]/30' :
+                        task.category === 'Study' ? 'bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/30' :
+                        task.category === 'Health' ? 'bg-[#ffd166]/10 text-[#ffd166] border border-[#ffd166]/30' :
+                        'bg-[#1a1a1a] text-secondary/60 border border-border/20'
                       }`}>{task.category}</span>
                     </div>
                   ))
