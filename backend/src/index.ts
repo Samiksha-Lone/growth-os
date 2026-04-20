@@ -40,6 +40,7 @@ const allowedOrigins = process.env.FRONTEND_URL
   : [
       'http://localhost:3000',
       'http://localhost:4173',
+      'http://localhost:4174',
       'https://growth-os-chi.vercel.app'
     ];
 

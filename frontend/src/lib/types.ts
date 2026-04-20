@@ -45,6 +45,19 @@ export interface Insight {
   detail: string;
 }
 
+export interface AdvancedAnalytics {
+  insights: Insight[];
+  scores: {
+    consistency: string;
+    goalAlignment: string;
+  };
+  summary: {
+    total: number;
+    highSeverity: number;
+    actionable: number;
+  };
+}
+
 export interface Goal {
   _id: string;
   text: string;

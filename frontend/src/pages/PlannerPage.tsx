@@ -46,8 +46,8 @@ export default function PlannerPage() {
   const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
   const { data, isLoading } = useQuery<Task[]>({
-    queryKey: ['tasks'],
-    queryFn: () => fetchTasks()
+    queryKey: ['tasks', localDate],
+    queryFn: () => fetchTasks(localDate)
   });
 
   const habitsQuery = useQuery<Habit[]>({
@@ -96,14 +96,14 @@ export default function PlannerPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="title-main">My Planner</h1>
-        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
+        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border overflow-x-auto">
           {statusOrder.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+              className={`flex-1 md:flex-none whitespace-nowrap px-4 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
             >
               {tab}
             </button>
@@ -130,7 +130,7 @@ export default function PlannerPage() {
                 }}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="label-sub !mb-0 ml-1">Category</label>
                   <select
@@ -274,7 +274,7 @@ export default function PlannerPage() {
       </div>
 
       {/* Edit Task Modal */}
-      <Modal open={!!editingTask} onClose={() => setEditingTask(null)} title="Edit Task">
+      <Modal open={!!editingTask} onClose={() => setEditingTask(null)} title="Edit Task" className="!w-full !max-w-[600px]">
         {editingTask && (
           <div className="flex flex-col gap-6">
              <div className="flex flex-col gap-2">
@@ -287,7 +287,7 @@ export default function PlannerPage() {
                 />
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                    <label className="ml-1 uppercase label-sub">Category</label>
                    <select className="field-input !h-12 !px-4 uppercase tracking-widest text-[0.8rem] font-black" value={editingTask.category} onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value as Task['category'] })}>

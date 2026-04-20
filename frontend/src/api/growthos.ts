@@ -1,5 +1,5 @@
 import api from './axios';
-import type { DashboardStats, Goal, Habit, Insight, Reflection, RealitySummary, Task, UserProfile, PomodoroSession } from '../lib/types';
+import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, RealitySummary, Task, UserProfile, PomodoroSession } from '../lib/types';
 
 export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
   const dateStr = date || new Date().toLocaleDateString('en-CA');
@@ -82,27 +82,32 @@ export async function createReflection(reflection: Partial<Reflection>): Promise
   return response.data.reflection;
 }
 
-export async function fetchInsights(): Promise<Insight[]> {
+export async function fetchInsights(): Promise<AdvancedAnalytics> {
   const response = await api.get('/ai/insights');
-  const data = response.data.insights || {};
+  
+  // Handle the new comprehensive analytics response
+  const insightsData = response.data.insights || response.data;
+  
+  if (Array.isArray(insightsData)) {
+    const formattedInsights = insightsData.map((item: any, index: number) => ({
+      id: item._id || index.toString(),
+      title: `${(item.category || item.type || 'Insight').toUpperCase()}`,
+      detail: item.message || item.detail,
+    }));
 
-  const insights: Insight[] = [];
-  let id = 1;
+    return {
+      insights: formattedInsights,
+      scores: response.data.scores || { consistency: '0', goalAlignment: '0' },
+      summary: response.data.summary || { total: 0, highSeverity: 0, actionable: 0 }
+    };
+  }
 
-  Object.entries(data).forEach(([category, items]: [string, any]) => {
-    if (Array.isArray(items)) {
-      items.forEach((detail: string) => {
-        insights.push({
-          id: id.toString(),
-          title: category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-          detail,
-        });
-        id++;
-      });
-    }
-  });
-
-  return insights;
+  // Fallback for empty or unrecognized format
+  return {
+    insights: [],
+    scores: { consistency: '0', goalAlignment: '0' },
+    summary: { total: 0, highSeverity: 0, actionable: 0 }
+  };
 }
 
 export async function fetchRealitySummary(date?: string): Promise<RealitySummary> {

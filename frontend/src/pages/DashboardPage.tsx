@@ -57,7 +57,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-8 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-4">
         {statsQuery.isLoading ? (
           Array.from({ length: 4 }).map((_, index) => (
             <Card key={index} className="primary h-32"><Skeleton height="100%" /></Card>
@@ -93,17 +93,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-2 gap-8 w-full items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full items-start">
         {/* Left Column */}
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-4">
             <span className="uppercase label-sub">Today's Overview</span>
             <Card className="primary !p-0 overflow-hidden">
-              <div className="px-6 py-2 bg-[#050505] border-b border-border flex justify-between items-center">
+              <div className="px-4 md:px-6 py-2 bg-[#050505] border-b border-border flex flex-wrap justify-between items-center gap-2">
                  <span className="text-[0.6rem] font-black text-secondary/40 uppercase tracking-[2px]">Top Tasks for Today</span>
                  <span className="text-[0.6rem] font-black text-accent uppercase tracking-[2px]">{todayTasks.length} Active</span>
               </div>
-              <div className="task-preview-list px-6">
+              <div className="task-preview-list px-4 md:px-6">
                 {tasksQuery.isLoading ? (
                   <Skeleton height="180px" />
                 ) : todayTasks.length === 0 ? (
@@ -112,17 +112,17 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   todayTasks.map((task, i) => (
-                    <div key={task._id} className={`flex justify-between items-center py-4 border-b border-[#0a0a0a] last:border-0`}>
-                      <div className="flex items-center gap-4">
-                        <div className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''} w-[18px] h-[18px] transition-all`}>
+                    <div key={task._id} className={`flex justify-between items-center py-3 md:py-4 border-b border-[#0a0a0a] last:border-0 gap-3`}>
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''} w-[18px] h-[18px] transition-all flex-shrink-0`}>
                           {task.status === 'Completed' && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
                         </div>
-                        <div>
-                          <div className={`${task.status === 'Completed' ? 'text-secondary/30 line-through' : 'text-white'} font-black text-[1rem] leading-none mb-1`}>{task.title}</div>
-                          {task.startTime && <div className="text-[0.65rem] text-secondary/40 font-black uppercase tracking-widest">⏰ {task.startTime}</div>}
+                        <div className="min-w-0">
+                          <div className={`${task.status === 'Completed' ? 'text-secondary/30 line-through' : 'text-white'} font-black text-[0.95rem] md:text-[1rem] leading-tight mb-0.5 break-words line-clamp-1 sm:line-clamp-none`}>{task.title}</div>
+                          {task.startTime && <div className="text-[0.6rem] md:text-[0.65rem] text-secondary/30 font-black uppercase tracking-widest leading-none">⏰ {task.startTime}</div>}
                         </div>
                       </div>
-                      <span className={`text-[0.65rem] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${
+                      <span className={`flex-shrink-0 text-[0.55rem] md:text-[0.65rem] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${
                         task.category === 'Work' ? 'bg-[#3a86ff]/10 text-[#3a86ff] border border-[#3a86ff]/20' :
                         task.category === 'Study' ? 'bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20' :
                         'bg-[#1a1a1a] text-secondary/60 border border-border/10'
@@ -139,28 +139,35 @@ export default function DashboardPage() {
             {realityQuery.isLoading ? (
               <Skeleton height="60px" />
             ) : (
-              <div className="flex justify-between items-center">
-                <div className="flex gap-8">
-                  <div className="flex flex-col">
-                    <span className="label-sub !text-secondary/40 !text-[0.6rem] !mb-1 uppercase tracking-widest">Planned</span>
-                    <span className="text-white text-[1.8rem] font-black tracking-tighter leading-none">{reality?.plannedTasks ?? '—'}</span>
+              <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:gap-10 sm:items-start">
+                  <div className="flex justify-between items-center sm:flex-col sm:items-start gap-1">
+                    <span className="label-sub !text-secondary/20 !text-[0.65rem] md:!text-[0.6rem] uppercase tracking-[2px]">Planned</span>
+                    <span className="text-white text-[1.6rem] md:text-[1.8rem] font-black tracking-tighter leading-none">{reality?.plannedTasks ?? '—'}</span>
                   </div>
-                  <div className="w-px bg-[#0a0a0a] my-1" />
-                  <div className="flex flex-col">
-                    <span className="label-sub !text-[#06d6a0]/40 !text-[0.6rem] !mb-1 uppercase tracking-widest">Done</span>
-                    <span className="text-[#06d6a0] text-[1.8rem] font-black tracking-tighter leading-none">{reality?.completedTasks ?? '—'}</span>
+                  <div className="flex justify-between items-center sm:flex-col sm:items-start gap-1">
+                    <span className="label-sub !text-[#06d6a0]/20 !text-[0.65rem] md:!text-[0.6rem] uppercase tracking-[2px]">Done</span>
+                    <span className="text-[#06d6a0] text-[1.6rem] md:text-[1.8rem] font-black tracking-tighter leading-none">{reality?.completedTasks ?? '—'}</span>
                   </div>
-                  <div className="w-px bg-[#0a0a0a] my-1" />
-                  <div className="flex flex-col">
-                    <span className="label-sub !text-[#ef476f]/40 !text-[0.6rem] !mb-1 uppercase tracking-widest">Missed</span>
-                    <span className="text-[#ef476f] text-[1.8rem] font-black tracking-tighter leading-none">{reality?.missedTasks ?? '—'}</span>
+                  <div className="flex justify-between items-center sm:flex-col sm:items-start gap-1">
+                    <span className="label-sub !text-[#ef476f]/20 !text-[0.65rem] md:!text-[0.6rem] uppercase tracking-[2px]">Missed</span>
+                    <span className="text-[#ef476f] text-[1.6rem] md:text-[1.8rem] font-black tracking-tighter leading-none">{reality?.missedTasks ?? '—'}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className={`${(reality?.completionPercentage ?? 0) >= 70 ? 'text-[#06d6a0]' : 'text-[#ef476f]'} text-[2.4rem] font-black tracking-tighter leading-none`}>
-                    {reality?.completionPercentage ?? 0}%
+                
+                <div className="pt-6 border-t border-border/10 flex justify-between items-center bg-[#050505]/30 -mx-6 px-6 pb-2 rounded-b-2xl">
+                  <div className="flex flex-col">
+                    <div className="text-secondary/20 text-[0.55rem] font-black uppercase tracking-[3px] mb-1">Efficiency</div>
+                    <div className={`${(reality?.completionPercentage ?? 0) >= 70 ? 'text-[#06d6a0]' : 'text-[#ef476f]'} text-[2.2rem] md:text-[2.6rem] font-black tracking-[-3px] leading-none`}>
+                      {reality?.completionPercentage ?? 0}%
+                    </div>
                   </div>
-                  <div className="text-secondary/30 text-[0.6rem] font-black uppercase tracking-[3px] mt-1">Efficiency</div>
+                  <div className="flex flex-col items-end gap-1.5">
+                     <div className="bg-[#0a0a0a] px-3 py-1.5 rounded-lg border border-border/10 shadow-lg">
+                        <span className="text-[0.55rem] text-secondary/40 font-black uppercase tracking-widest whitespace-nowrap">Daily Goal Reached</span>
+                     </div>
+                     <span className="text-[0.5rem] text-secondary/10 font-bold uppercase tracking-[1px] mr-1">Status Verified</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -195,7 +202,7 @@ export default function DashboardPage() {
           </div>
 
           <Card className="primary compact-card !flex-1 p-6">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
                <span className="uppercase label-sub">Weekly Activity</span>
                <div className="flex items-baseline gap-1">
                  <span className="text-white text-[1.2rem] font-black tracking-tight">{stats?.tasksToday ?? 0}</span>

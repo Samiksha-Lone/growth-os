@@ -104,14 +104,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="title-main">My Progress</h1>
         <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
           {(['Overview', 'Trends'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+              className={`flex-1 md:flex-none px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
             >
               {tab}
             </button>
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
 
       {/* ── TRENDS TAB ── */}
       {activeTab === 'Trends' && (
-        <div className="grid items-start w-full grid-cols-2 gap-8">
+        <div className="grid items-start w-full grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           <div className="flex flex-col gap-8">
             {/* Activity Heatmap */}
             <Card className="p-6 primary">

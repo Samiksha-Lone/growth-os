@@ -11,6 +11,7 @@ import RealityCheckPage from './pages/RealityCheckPage';
 import PomodoroPage from './pages/PomodoroPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
+import HistoryPage from './pages/HistoryPage';
 
 const protectedRoutes = [
   { path: '/dashboard', element: <DashboardPage /> },
@@ -21,7 +22,8 @@ const protectedRoutes = [
   { path: '/insights', element: <InsightsPage /> },
   { path: '/reality-check', element: <RealityCheckPage /> },
   { path: '/pomodoro', element: <PomodoroPage /> },
-  { path: '/settings', element: <SettingsPage /> }
+  { path: '/settings', element: <SettingsPage /> },
+  { path: '/history', element: <HistoryPage /> }
 ];
 
 function App() {

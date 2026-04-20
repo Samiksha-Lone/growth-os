@@ -38,7 +38,7 @@ export default function ReflectionPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="title-main">Daily Reflection</h1>
       </div>
 
@@ -76,22 +76,22 @@ export default function ReflectionPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-8 py-4 mt-1 border-t border-border/10">
-                <div className="flex flex-col gap-2">
-                  <span className="label-sub uppercase !mb-0 opacity-40">Feeling?</span>
-                  <div className="flex gap-1.5 bg-[#000] p-1 rounded-xl border border-border/20">
-                    <button className={`p-2 rounded-lg text-lg transition-all flex items-center justify-center ${mood === 1 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(1)}><FiFrown /></button>
-                    <button className={`p-2 rounded-lg text-lg transition-all flex items-center justify-center ${mood === 2 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(2)}><FiMeh /></button>
-                    <button className={`p-2 rounded-lg text-lg transition-all flex items-center justify-center ${mood === 3 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(3)}><FiSmile /></button>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6 md:gap-8 py-6 mt-2 border-t border-border/10">
+                <div className="flex flex-col gap-2.5">
+                  <span className="label-sub uppercase !mb-0 opacity-40 text-[0.65rem] tracking-[2px]">How are you feeling?</span>
+                  <div className="flex gap-2 bg-[#000] p-1.5 rounded-2xl border border-border/20 w-fit">
+                    <button className={`p-2.5 rounded-xl text-xl transition-all flex items-center justify-center ${mood === 1 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(1)}><FiFrown /></button>
+                    <button className={`p-2.5 rounded-xl text-xl transition-all flex items-center justify-center ${mood === 2 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(2)}><FiMeh /></button>
+                    <button className={`p-2.5 rounded-xl text-xl transition-all flex items-center justify-center ${mood === 3 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => setMood(3)}><FiSmile /></button>
                   </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-2">
+                <div className="flex-1 flex flex-col gap-3 w-full">
                   <div className="flex items-center justify-between">
-                    <span className="label-sub uppercase !mb-0 opacity-40">Productivity Yield</span>
-                    <span className="text-[1.1rem] font-black text-white">{productivityScore} <span className="text-secondary/20 text-[0.75rem] uppercase ml-1">/ 10</span></span>
+                    <span className="label-sub uppercase !mb-0 opacity-40 text-[0.65rem] tracking-[2px]">Productivity Yield</span>
+                    <span className="text-[1.2rem] font-black text-white leading-none">{productivityScore} <span className="text-secondary/20 text-[0.8rem] uppercase ml-1">/ 10</span></span>
                   </div>
-                  <div className="w-full h-1 bg-[#0a0a0a] rounded-full relative group">
+                  <div className="w-full h-1.5 bg-[#0a0a0a] rounded-full relative group">
                     <div className="h-full transition-all duration-300 rounded-full bg-accent" style={{ width: `${productivityScore * 10}%`, filter: 'drop-shadow(0 0 5px rgba(58,134,255,0.4))' }} />
                     <input
                       type="range" min="1" max="10" value={productivityScore}
@@ -102,7 +102,7 @@ export default function ReflectionPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row sm:justify-end mt-4">
                 <Button
                   onClick={() => addMutation.mutate({
                     goodThings: [goodThings],
@@ -112,7 +112,7 @@ export default function ReflectionPage() {
                     productivityScore,
                     date: new Date().toISOString()
                   })}
-                  className="!px-10 !py-3 !bg-accent !text-white !font-black !text-[0.8rem] !rounded-xl active:scale-95 transition-all shadow-xl uppercase tracking-widest"
+                  className="w-full sm:w-auto !px-12 !py-4 !bg-accent !text-white !font-black !text-[0.85rem] !rounded-2xl active:scale-95 transition-all shadow-xl uppercase tracking-[2px]"
                 >
                   SAVE REFLECTION
                 </Button>

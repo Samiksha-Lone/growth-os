@@ -62,19 +62,19 @@ export default function PomodoroPage() {
 
   return (
     <div className="page-stack !gap-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="title-main">Focus Timer</h1>
           <span className="text-[0.65rem] text-secondary/30 font-black uppercase tracking-[3px]">{sessionsDone} session{sessionsDone !== 1 ? 's' : ''} completed today</span>
         </div>
         
         {/* Session selector */}
-        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
+        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border overflow-x-auto w-full md:w-auto">
           {SESSIONS.map((s, i) => (
             <button
               key={s.label}
               onClick={() => { setSessionIdx(i); }}
-              className={`px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${
+              className={`whitespace-nowrap flex-1 md:flex-none px-4 md:px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${
                  sessionIdx === i 
                  ? 'bg-[#1a1a1a] text-white shadow-lg' 
                  : 'bg-transparent text-secondary hover:text-white'
@@ -86,11 +86,11 @@ export default function PomodoroPage() {
         </div>
       </div>
 
-      <Card className="p-12 primary">
-        <div className="flex flex-col items-center w-full gap-12">
+      <Card className="p-6 md:p-12 primary">
+        <div className="flex flex-col items-center w-full gap-8 md:gap-12">
           {/* SVG Ring Timer */}
-          <div className="w-[200px] h-[200px] relative">
-            <svg width="200" height="200" viewBox="0 0 100 100" className="-rotate-90">
+          <div className="w-[180px] h-[180px] md:w-[220px] md:h-[220px] relative">
+            <svg viewBox="0 0 100 100" className="-rotate-90 w-full h-full">
               <circle cx="50" cy="50" r="46" fill="none" stroke="#0a0a0a" strokeWidth="2.5" />
               <circle
                 cx="50" cy="50" r="46" fill="none"
@@ -104,46 +104,44 @@ export default function PomodoroPage() {
               />
             </svg>
             <div className="absolute w-full text-center -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
-              <div className="text-[3.8rem] font-black text-white tracking-[-4px] font-mono leading-none">
+              <div className="text-[2.8rem] md:text-[3.8rem] font-black text-white tracking-[-3px] md:tracking-[-4px] font-mono leading-none">
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </div>
-              <div className="text-[0.6rem] text-secondary/30 font-black uppercase tracking-[4px] mt-4">
+              <div className="text-[0.55rem] md:text-[0.6rem] text-secondary/30 font-black uppercase tracking-[4px] mt-2 md:mt-4">
                 {currentSession.label}
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             <Button
               onClick={toggle}
-              className={`px-14 py-4 min-w-[180px] font-black text-[0.85rem] text-white rounded-2xl transition-all shadow-2xl uppercase tracking-widest ${isActive ? 'bg-[#0a0a0a] border border-border/20' : 'bg-accent border-none hover:scale-105 active:scale-95'}`}
+              className={`w-full sm:w-auto px-10 md:px-14 py-4 min-w-[200px] font-black text-[0.85rem] text-white rounded-2xl transition-all shadow-2xl uppercase tracking-widest ${isActive ? 'bg-[#0a0a0a] border border-border/20' : 'bg-accent border-none'}`}
             >
               {isActive ? 'PAUSE' : timeLeft < totalSeconds ? 'RESUME' : 'START FOCUS'}
             </Button>
             <button
               onClick={reset}
-              className="px-10 py-3 bg-transparent border border-border/10 text-secondary/40 text-[0.75rem] rounded-xl font-black uppercase tracking-widest hover:text-white hover:border-border transition-all active:scale-95"
+              className="w-full sm:w-auto px-10 py-3 bg-transparent border border-border/10 text-secondary/40 text-[0.75rem] rounded-xl font-black uppercase tracking-widest hover:text-white hover:border-border transition-all"
             >
               RESET
             </button>
           </div>
 
           {/* Session info */}
-          <div className="w-full max-w-[520px] px-4 py-4 bg-[#05070a] rounded-3xl border border-border/10 shadow-inner">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-0.5">
-                <div className="text-[0.62rem] text-secondary/40 uppercase tracking-[2px] font-black">Finish</div>
-                <div className="text-base font-black text-white">{new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          <div className="w-full max-w-[520px] px-6 py-6 bg-[#05070a] rounded-3xl border border-border/10">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-1">
+                <div className="text-[0.62rem] text-secondary/30 uppercase tracking-[2px] font-black">Finish Time</div>
+                <div className="text-lg font-black text-white">{new Date(Date.now() + timeLeft * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
-              <div className="space-y-0.5">
-                <div className="text-[0.62rem] text-secondary/40 uppercase tracking-[2px] font-black">Session</div>
-                <div className="text-base font-black text-white">{currentSession.label}</div>
-                <div className="text-[0.75rem] text-secondary/50 uppercase tracking-[1px]">{currentSession.duration}:00 min</div>
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-1">
+                <div className="text-[0.62rem] text-secondary/30 uppercase tracking-[2px] font-black">Mode</div>
+                <div className="text-lg font-black text-white">{currentSession.label}</div>
               </div>
-              <div className="space-y-0.5">
-                <div className="text-[0.62rem] text-secondary/40 uppercase tracking-[2px] font-black">Progress</div>
-                <div className="text-base font-black text-white">{Math.round(progress)}%</div>
-                <div className="text-[0.75rem] text-secondary/50 uppercase tracking-[1px]">{sessionsDone} session{sessionsDone !== 1 ? 's' : ''} done</div>
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-1">
+                <div className="text-[0.62rem] text-secondary/30 uppercase tracking-[2px] font-black">Stats</div>
+                <div className="text-lg font-black text-[#06d6a0]">{Math.round(progress)}% <span className="text-secondary/20 text-xs font-bold uppercase ml-1">done</span></div>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchInsights, fetchRealitySummary, fetchHabits, fetchTasks } from '../api/growthos';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
-import type { Insight, RealitySummary, Habit, Task } from '../lib/types';
+import type { AdvancedAnalytics, RealitySummary, Habit, Task } from '../lib/types';
 
 function calcStreak(completedDates: string[]): number {
   if (!completedDates?.length) return 0;
@@ -24,7 +24,7 @@ export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState<'Insights' | 'Goals'>('Insights');
   const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
-  const insightsQuery = useQuery<Insight[]>({ queryKey: ['insights'], queryFn: fetchInsights });
+  const insightsQuery = useQuery<AdvancedAnalytics>({ queryKey: ['insights'], queryFn: fetchInsights });
   const realityQuery = useQuery<RealitySummary>({ queryKey: ['reality', localDate], queryFn: () => fetchRealitySummary(localDate) });
   const habitsQuery = useQuery<Habit[]>({ queryKey: ['habits'], queryFn: fetchHabits });
   const tasksQuery = useQuery<Task[]>({ queryKey: ['tasks'], queryFn: () => fetchTasks() });
@@ -46,14 +46,14 @@ export default function InsightsPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="title-main">Insights</h1>
         <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
           {(['Insights', 'Goals'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+              className={`flex-1 md:flex-none px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
             >
               {tab}
             </button>
@@ -71,7 +71,7 @@ export default function InsightsPage() {
 
               {insightsQuery.isLoading ? (
                 <Skeleton height="220px" />
-              ) : !insightsQuery.data?.length ? (
+              ) : !insightsQuery.data?.insights?.length ? (
                 <Card className="p-12 text-center primary">
                   <div className="text-[2rem] mb-4">📊</div>
                   <div className="text-white font-[900] text-[1.2rem] mb-2">Learning your patterns...</div>
@@ -82,7 +82,7 @@ export default function InsightsPage() {
                 </Card>
               ) : (
                 <div className="stack-gap-sm">
-                  {insightsQuery.data.map((insight) => (
+                  {insightsQuery.data.insights.map((insight) => (
                     <Card key={insight.id} className="p-5 border-l-2 primary border-accent">
                       <div className="text-[0.65rem] text-accent font-black uppercase tracking-widest mb-1.5">
                         {insight.title}
@@ -134,16 +134,18 @@ export default function InsightsPage() {
               {realityQuery.isLoading ? <Skeleton height="80px" /> : (
                 <div className="stack-gap-md">
                   <div className="flex items-center gap-5">
-                    <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{completionPct}%</span>
+                    <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">
+                      {insightsQuery.data?.scores?.consistency || completionPct}%
+                    </span>
                     <div className="flex-1">
                       <div className="h-1.5 bg-[#0a0a0a] rounded-full overflow-hidden">
                         <div 
-                          className={`h-full transition-all duration-700 ${completionPct >= 70 ? 'bg-[#06d6a0]' : 'bg-[#ef476f]'}`}
-                          style={{ width: `${completionPct}%` }} 
+                          className={`h-full transition-all duration-700 ${Number(insightsQuery.data?.scores?.consistency || completionPct) >= 70 ? 'bg-[#06d6a0]' : 'bg-[#ef476f]'}`}
+                          style={{ width: `${Number(insightsQuery.data?.scores?.consistency || completionPct)}%` }} 
                         />
                       </div>
                       <div className="text-[0.65rem] font-black text-secondary uppercase tracking-[2px] mt-2">
-                        {completionPct >= 80 ? 'Excellent Focus' : completionPct >= 50 ? 'Gaining Momentum' : 'Keep at it!'}
+                        {Number(insightsQuery.data?.scores?.consistency || completionPct) >= 80 ? 'Excellent Focus' : Number(insightsQuery.data?.scores?.consistency || completionPct) >= 50 ? 'Gaining Momentum' : 'Keep at it!'}
                       </div>
                     </div>
                   </div>
@@ -169,7 +171,7 @@ export default function InsightsPage() {
                     { label: 'Total Planned', value: reality?.plannedTasks ?? 0, color: 'text-white' },
                     { label: 'Completed', value: reality?.completedTasks ?? 0, color: 'text-[#06d6a0]' },
                     { label: 'Missed', value: reality?.missedTasks ?? 0, color: 'text-[#ef476f]' },
-                    { label: "Today's Score", value: `${completionPct}%`, color: 'text-accent' },
+                    { label: "Goal Alignment", value: `${insightsQuery.data?.scores?.goalAlignment || 0}%`, color: 'text-accent' },
                   ].map((row, i) => (
                     <div key={i} className="flex justify-between items-center py-2.5 border-b border-[#111] last:border-0">
                       <span className="text-[0.8rem] text-secondary font-bold">{row.label}</span>

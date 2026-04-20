@@ -37,6 +37,11 @@ const mainLinks = [
     to: '/pomodoro', label: 'Pomodoro', icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
     )
+  },
+  {
+    to: '/history', label: 'History', icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+    )
   }
 ];
 
@@ -53,19 +58,33 @@ const utilityLinks = [
   }
 ];
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { signOut, userEmail, githubUrl, linkedinUrl, portfolioUrl } = useAuth();
 
   return (
     <aside className="bg-card border-r border-border p-5 flex flex-col gap-8 sticky top-0 h-screen w-[280px] overflow-hidden">
-      <div className="flex items-center gap-4 px-4">
-        <div className="w-10 h-10 border border-border flex items-center justify-center rounded-xl bg-[#0a0a0a] shadow-inner overflow-hidden">
-          <Logo />
+      <div className="flex items-center justify-between px-4">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 border border-border flex items-center justify-center rounded-xl bg-[#0a0a0a] shadow-inner overflow-hidden">
+            <Logo />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[1.1rem] font-black text-white tracking-tight leading-none">GrowthOS</span>
+            <span className="text-[0.7rem] text-secondary font-black uppercase tracking-widest mt-1">Focus system</span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[1.1rem] font-black text-white tracking-tight leading-none">GrowthOS</span>
-          <span className="text-[0.7rem] text-secondary font-black uppercase tracking-widest mt-1">Focus system</span>
-        </div>
+
+        {/* Close Button for Mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors text-secondary hover:text-white"
+          aria-label="Close menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
 
       <nav className="flex-1 flex flex-col gap-6">
@@ -74,6 +93,7 @@ export function Sidebar() {
             <NavLink
               key={link.to}
               to={link.to}
+              onClick={onClose}
               className={({ isActive }) =>
                 `group flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-[0.9rem] font-bold transition-all duration-300 border ${isActive ? 'bg-[#1a1a1a] border-border text-white shadow-lg' : 'border-transparent text-secondary hover:text-white hover:bg-[#111]'}`
               }
@@ -95,6 +115,7 @@ export function Sidebar() {
             <NavLink
               key={link.label}
               to={link.to}
+              onClick={onClose}
               className={({ isActive }) =>
                 `group flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-[0.9rem] font-bold transition-all duration-300 border ${isActive ? 'bg-[#1a1a1a] border-border text-white shadow-lg' : 'border-transparent text-secondary hover:text-white hover:bg-[#111]'}`
               }

@@ -4,9 +4,19 @@ import Joi from 'joi';
 import User from '../models/User';
 
 const registerSchema = Joi.object({
-  name: Joi.string().required(),
+  name: Joi.string()
+    .pattern(/^[a-zA-Z\s]+$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Name must only contain alphabets and spaces',
+    }),
   email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
+  password: Joi.string()
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character',
+    }),
 });
 
 const loginSchema = Joi.object({
@@ -15,7 +25,12 @@ const loginSchema = Joi.object({
 });
 
 const profileUpdateSchema = Joi.object({
-  name: Joi.string().optional(),
+  name: Joi.string()
+    .pattern(/^[a-zA-Z\s]+$/)
+    .optional()
+    .messages({
+      'string.pattern.base': 'Name must only contain alphabets and spaces',
+    }),
   email: Joi.string().email().optional(),
   githubUrl: Joi.string().allow('', null).optional(),
   linkedinUrl: Joi.string().allow('', null).optional(),

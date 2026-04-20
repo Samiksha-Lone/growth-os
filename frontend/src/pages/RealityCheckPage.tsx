@@ -42,7 +42,7 @@ export default function RealityCheckPage() {
       </div>
 
       {/* Top stats row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <Card key={i} className="primary h-24"><Skeleton height="100%" /></Card>)
         ) : (
@@ -71,9 +71,9 @@ export default function RealityCheckPage() {
 
           {/* Completion bar */}
           <Card className="p-6 primary">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-6">
               <span className="uppercase label-sub">Completion Rate</span>
-              <span className="text-[2.4rem] font-black tracking-tighter" style={{ color: scoreColor }}>{completionPct}%</span>
+              <span className="text-[2.2rem] sm:text-[2.4rem] font-black tracking-tighter" style={{ color: scoreColor }}>{completionPct}%</span>
             </div>
             <div className="h-1 bg-[#0a0a0a] rounded-full overflow-hidden">
               <div className="h-full transition-all duration-700 ease-out" style={{ width: `${completionPct}%`, background: scoreColor }} />
@@ -140,7 +140,7 @@ export default function RealityCheckPage() {
                 { label: 'Finished', value: data?.completedTasks ?? 0, color: 'text-[#06d6a0]' },
                 { label: 'Unfinished', value: data?.missedTasks ?? 0, color: 'text-[#ef476f]' },
               ].map((row, i) => (
-                <div key={i} className={`flex justify-between py-2 border-b border-[#0a0a0a] last:border-0`}>
+                <div key={i} className="flex flex-wrap justify-between items-center py-2 border-b border-[#0a0a0a] last:border-0 gap-2">
                   <span className="text-[0.75rem] text-secondary/40 font-black uppercase tracking-widest">{row.label}</span>
                   <span className={`text-[0.9rem] font-black ${row.color.startsWith('#') ? '' : row.color}`} style={row.color.startsWith('#') ? { color: row.color } : {}}>{row.value}</span>
                 </div>

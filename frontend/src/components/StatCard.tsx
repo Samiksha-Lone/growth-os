@@ -14,37 +14,35 @@ export function StatCard({ title, value, description, progress, color = '#00bfff
   const denominator = parts.length > 1 ? ` / ${parts[1]}` : '';
 
   return (
-    <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '16px 18px' }}>
-      <p className="stat-card-title" style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '10px', fontWeight: 500 }}>{title}</p>
+    <div className="stat-card flex flex-col items-start !p-4 md:!p-6">
+      <p className="stat-card-title text-[#a0a0a0] text-[0.7rem] md:text-[0.8rem] mb-2 md:mb-3 font-semibold uppercase tracking-wider">{title}</p>
       
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%', marginBottom: '4px' }}>
-        <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>
+      <div className="flex items-baseline justify-between w-full mb-1">
+        <div className="text-[1.3rem] md:text-[1.6rem] font-bold tracking-tight text-white">
           {mainValue}
-          <span style={{ color: '#555', fontSize: '1.1rem', marginLeft: '4px' }}>{denominator}</span>
+          <span className="text-[#555] text-[0.9rem] md:text-[1.1rem] ml-1">{denominator}</span>
         </div>
         
         {/* Indicator Segments from Mockup */}
-        <div style={{ display: 'flex', gap: '3px' }}>
-           <div style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#333' }}></div>
-           <div style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#333' }}></div>
-           <div style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#1a1a1a' }}></div>
+        <div className="hidden sm:flex gap-[3px]">
+           <div className="w-[8px] h-[14px] rounded-[2px] background: #333' bg-[#333]"></div>
+           <div className="w-[8px] h-[14px] rounded-[2px] background: #333' bg-[#333]"></div>
+           <div className="w-[8px] h-[14px] rounded-[2px] background: #1a1a1a' bg-[#1a1a1a]"></div>
         </div>
       </div>
       
       {description && (
-        <p style={{ color: '#555', fontSize: '0.75rem', marginTop: '4px', fontWeight: 500 }}>{description}</p>
+        <p className="text-[#555] text-[0.7rem] md:text-[0.75rem] mt-1 font-medium leading-tight">{description}</p>
       )}
       
       {progress !== undefined && (
-        <div className="progress-container" style={{ marginTop: '16px', background: '#1a1a1a', height: '4px' }}>
+        <div className="progress-container w-full mt-4 bg-[#1a1a1a] h-1 md:h-1.5 rounded-full overflow-hidden">
           <div 
-            className="progress-fill" 
+            className="progress-fill h-full transition-all duration-300" 
             style={{ 
               width: `${Math.min(100, progress)}%`, 
-              background: color,
-              height: '100%',
-              borderRadius: '2px',
-              boxShadow: `0 0 10px ${color}22`
+              backgroundColor: color,
+              boxShadow: `0 0 10px ${color}44`
             }} 
           />
         </div>

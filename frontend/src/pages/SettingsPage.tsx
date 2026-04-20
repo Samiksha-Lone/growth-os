@@ -151,7 +151,7 @@ export default function SettingsPage() {
              </div>
 
              <form onSubmit={handleSave} className="stack-gap-md">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                    <div className="stack-gap-sm">
                       <label className="label-sub ml-1 uppercase">First Name</label>
                       <input className="field-input !h-12 !text-[0.9rem] !px-4" value={profile.firstName} onChange={e => setProfile({...profile, firstName: e.target.value})} />
