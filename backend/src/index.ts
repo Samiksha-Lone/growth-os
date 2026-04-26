@@ -3,7 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import dotenv from 'dotenv';
+import { Request, Response } from 'express';
 import connectDB from './config/database';
 import { initializeJobScheduler } from './jobs/taskScheduler';
 import authRoutes from './routes/auth';
@@ -12,7 +14,7 @@ import reflectionRoutes from './routes/reflections';
 import habitRoutes from './routes/habits';
 import goalRoutes from './routes/goals';
 import analyticsRoutes from './routes/analytics';
-import aiRoutes from './routes/ai';
+import insightsRoutes from './routes/insights';
 import realityCheckRoutes from './routes/realityCheck';
 import pomodoroRoutes from './routes/pomodoro';
 import { errorHandler } from './middleware/errorHandler';
@@ -32,6 +34,20 @@ initializeJobScheduler();
 app.use(helmet({
   crossOriginResourcePolicy: false,
   crossOriginEmbedderPolicy: false,
+}));
+
+// Enable compression for all responses
+app.use(compression({
+  level: 6, // Default compression level (0-9, higher = slower but better compression)
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req: Request, res: Response) => {
+    // Don't compress responses with this request header
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression filter function
+    return compression.filter(req, res);
+  }
 }));
 
 // CORS configuration
@@ -69,7 +85,7 @@ app.use('/api/reflections', reflectionRoutes);
 app.use('/api/habits', habitRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/insights', insightsRoutes);
 app.use('/api/reality-check', realityCheckRoutes);
 app.use('/api/pomodoro', pomodoroRoutes);
 

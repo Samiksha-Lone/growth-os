@@ -98,8 +98,13 @@ export class HabitService {
     };
   }
 
-  static async getHabits(userId: string): Promise<IHabit[]> {
-    return Habit.find({ userId }).sort({ updatedAt: -1 }).exec();
+  static async getHabits(userId: string, limit: number = 50, skip: number = 0): Promise<IHabit[]> {
+    return Habit.find({ userId })
+      .sort({ updatedAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean()
+      .exec();
   }
 
   static async deleteHabit(habitId: string, userId: string): Promise<boolean> {

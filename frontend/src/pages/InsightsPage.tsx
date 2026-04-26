@@ -24,10 +24,27 @@ export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState<'Insights' | 'Goals'>('Insights');
   const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
-  const insightsQuery = useQuery<AdvancedAnalytics>({ queryKey: ['insights'], queryFn: fetchInsights });
-  const realityQuery = useQuery<RealitySummary>({ queryKey: ['reality', localDate], queryFn: () => fetchRealitySummary(localDate) });
-  const habitsQuery = useQuery<Habit[]>({ queryKey: ['habits'], queryFn: fetchHabits });
-  const tasksQuery = useQuery<Task[]>({ queryKey: ['tasks'], queryFn: () => fetchTasks() });
+  const insightsQuery = useQuery<AdvancedAnalytics>({ 
+    queryKey: ['insights'], 
+    queryFn: fetchInsights,
+    retry: 2,
+    enabled: true
+  });
+  const realityQuery = useQuery<RealitySummary>({ 
+    queryKey: ['reality', localDate], 
+    queryFn: () => fetchRealitySummary(localDate),
+    retry: 1
+  });
+  const habitsQuery = useQuery<Habit[]>({ 
+    queryKey: ['habits'], 
+    queryFn: () => fetchHabits(),
+    retry: 1
+  });
+  const tasksQuery = useQuery<Task[]>({ 
+    queryKey: ['tasks'], 
+    queryFn: () => fetchTasks(),
+    retry: 1
+  });
 
   const reality = realityQuery.data;
   const completionPct = reality?.completionPercentage ?? 0;
@@ -46,7 +63,7 @@ export default function InsightsPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <h1 className="title-main">Insights</h1>
         <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
           {(['Insights', 'Goals'] as const).map(tab => (
@@ -64,13 +81,18 @@ export default function InsightsPage() {
       {/* ── INSIGHTS TAB ── */}
       {activeTab === 'Insights' && (
         <div className="split-layout">
-          {/* Left: AI + Pattern Insights */}
+          {/* Left: Pattern Insights */}
           <div className="stack-gap-lg">
             <div className="stack-gap-md">
-              <span className="ml-1 uppercase label-sub">Patterns & Habits</span>
+              <span className="ml-1 uppercase label-sub">Patterns & Trends</span>
 
               {insightsQuery.isLoading ? (
                 <Skeleton height="220px" />
+              ) : insightsQuery.isError ? (
+                <Card className="p-6 border-l-4 border-red-500 primary bg-red-950/20">
+                  <div className="mb-2 font-bold text-red-400">❌ Error loading insights</div>
+                  <p className="text-sm text-red-300">{insightsQuery.error?.message || 'Unable to fetch insights'}</p>
+                </Card>
               ) : !insightsQuery.data?.insights?.length ? (
                 <Card className="p-12 text-center primary">
                   <div className="text-[2rem] mb-4">📊</div>
@@ -82,8 +104,8 @@ export default function InsightsPage() {
                 </Card>
               ) : (
                 <div className="stack-gap-sm">
-                  {insightsQuery.data.insights.map((insight) => (
-                    <Card key={insight.id} className="p-5 border-l-2 primary border-accent">
+                  {insightsQuery.data.insights.map((insight, idx) => (
+                    <Card key={insight.id || idx} className="p-5 border-l-2 primary border-accent">
                       <div className="text-[0.65rem] text-accent font-black uppercase tracking-widest mb-1.5">
                         {insight.title}
                       </div>
@@ -98,27 +120,26 @@ export default function InsightsPage() {
 
             {/* Category breakdown from real tasks */}
             {!tasksQuery.isLoading && categoryBreakdown.length > 0 && (
-              <div className="pt-4 stack-gap-md">
-                <span className="ml-1 uppercase label-sub">Category Performance</span>
+              <div className="stack-gap-md">
+                <span className="ml-1 uppercase label-sub">Category Breakdown</span>
                 <div className="stack-gap-sm">
-                  {categoryBreakdown.map(row => (
-                    <Card key={row.cat} className="p-4 transition-colors primary hover:border-gray-800">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-black text-white text-[0.95rem]">{row.cat}</span>
-                        <span className={`text-[0.85rem] font-black ${(row.rate ?? 0) >= 70 ? 'text-[#06d6a0]' : (row.rate ?? 0) >= 40 ? 'text-accent' : 'text-[#ef476f]'}`}>
-                          {row.rate !== null ? `${row.rate}% EFFICIENCY` : '—'}
-                        </span>
-                      </div>
-                      <div className="h-1 bg-[#111] rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-700 ${(row.rate ?? 0) >= 70 ? 'bg-[#06d6a0]' : 'bg-accent'}`} 
-                          style={{ width: `${row.rate ?? 0}%` }} 
-                        />
-                      </div>
-                      <div className="flex gap-4 mt-3 text-[0.65rem] font-black uppercase tracking-widest text-secondary/40">
-                        <span>{row.planned} planned</span>
-                        <span className="text-[#06d6a0]/60">{row.completed} done</span>
-                        {row.missed > 0 && <span className="text-[#ef476f]/60">{row.missed} missed</span>}
+                  {categoryBreakdown.map(({ cat, planned, completed, rate }) => (
+                    <Card key={cat} className="p-4 primary">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="text-[0.75rem] text-accent font-black uppercase tracking-wider mb-2">
+                            {cat}
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="text-2xl font-black text-white">{completed}/{planned}</div>
+                            <div className="text-[0.85rem] text-secondary">
+                              {rate}% complete
+                            </div>
+                          </div>
+                        </div>
+                        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-[#1a1a1a] border border-border">
+                          <span className="text-lg font-black">{rate}%</span>
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -127,185 +148,86 @@ export default function InsightsPage() {
             )}
           </div>
 
-          {/* Right: Reliability & Summary */}
+          {/* Right: Daily Reality Check */}
           <div className="stack-gap-lg">
-            <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Your Consistency</span>
-              {realityQuery.isLoading ? <Skeleton height="80px" /> : (
-                <div className="stack-gap-md">
-                  <div className="flex items-center gap-5">
-                    <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">
-                      {insightsQuery.data?.scores?.consistency || completionPct}%
-                    </span>
-                    <div className="flex-1">
-                      <div className="h-1.5 bg-[#0a0a0a] rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-700 ${Number(insightsQuery.data?.scores?.consistency || completionPct) >= 70 ? 'bg-[#06d6a0]' : 'bg-[#ef476f]'}`}
-                          style={{ width: `${Number(insightsQuery.data?.scores?.consistency || completionPct)}%` }} 
-                        />
-                      </div>
-                      <div className="text-[0.65rem] font-black text-secondary uppercase tracking-[2px] mt-2">
-                        {Number(insightsQuery.data?.scores?.consistency || completionPct) >= 80 ? 'Excellent Focus' : Number(insightsQuery.data?.scores?.consistency || completionPct) >= 50 ? 'Gaining Momentum' : 'Keep at it!'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between border-t border-[#111] pt-4 mt-2">
-                    <div className="flex flex-col">
-                      <span className="text-[1.1rem] font-black text-[#06d6a0]">{reality?.completedTasks ?? 0}</span>
-                      <span className="label-sub !text-[0.6rem]">Done</span>
-                    </div>
-                    <div className="flex flex-col text-right">
-                      <span className="text-[1.1rem] font-black text-[#ef476f]">{reality?.missedTasks ?? 0}</span>
-                      <span className="label-sub !text-[0.6rem]">Missed</span>
-                    </div>
-                  </div>
+            {realityQuery.isLoading ? (
+              <Skeleton height="120px" />
+            ) : realityQuery.isError ? (
+              <Card className="p-6 border-l-4 border-red-500 primary bg-red-950/20">
+                <div className="font-bold text-red-400">❌ Error loading reality check</div>
+                <div className="mt-2 text-sm text-red-300">{realityQuery.error?.message}</div>
+              </Card>
+            ) : (
+              <Card className="p-6 border-l-4 primary border-cyan-400">
+                <div className="text-[0.7rem] text-cyan-400 font-black uppercase tracking-widest mb-2">
+                  Today's Reality
                 </div>
-              )}
-            </Card>
-
-            <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Report Summary</span>
-              {realityQuery.isLoading ? <Skeleton height="120px" /> : (
-                <div className="stack-gap-sm">
-                  {[
-                    { label: 'Total Planned', value: reality?.plannedTasks ?? 0, color: 'text-white' },
-                    { label: 'Completed', value: reality?.completedTasks ?? 0, color: 'text-[#06d6a0]' },
-                    { label: 'Missed', value: reality?.missedTasks ?? 0, color: 'text-[#ef476f]' },
-                    { label: "Goal Alignment", value: `${insightsQuery.data?.scores?.goalAlignment || 0}%`, color: 'text-accent' },
-                  ].map((row, i) => (
-                    <div key={i} className="flex justify-between items-center py-2.5 border-b border-[#111] last:border-0">
-                      <span className="text-[0.8rem] text-secondary font-bold">{row.label}</span>
-                      <span className={`text-[0.95rem] font-black ${row.color}`}>{row.value}</span>
-                    </div>
-                  ))}
+                <div className="mb-4">
+                  <div className="text-[2.5rem] font-black text-white mb-2">{completionPct}%</div>
+                  <p className="text-secondary text-[0.9rem] font-bold">
+                    {reality?.completedTasks || 0} of {reality?.plannedTasks || 0} tasks completed
+                  </p>
                 </div>
-              )}
-            </Card>
-
-            {reality?.overPlanningIndicator && (
-              <Card className="primary p-5 !border-l-4 !border-l-[#ef476f] bg-[#ef476f]/[0.02]">
-                <div className="font-black text-[#ef476f] text-[0.85rem] uppercase tracking-widest mb-2">Planning Advice</div>
-                <p className="m-0 text-secondary text-[0.8rem] font-bold leading-relaxed italic">
-                  You've planned more than usual! Try limiting your daily tasks to 5–6 to stay focused and avoid burnout.
-                </p>
+                <div className="w-full h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full transition-all bg-gradient-to-r from-cyan-500 to-cyan-400" 
+                    style={{ width: `${completionPct}%` }}
+                  />
+                </div>
               </Card>
             )}
+
+            {/* Habit Streaks */}
+            <div className="stack-gap-md">
+              <span className="ml-1 uppercase label-sub">Active Streaks</span>
+              {habitsQuery.isLoading ? (
+                <Skeleton height="100px" />
+              ) : habitsQuery.isError ? (
+                <Card className="p-4 primary bg-red-950/20">
+                  <p className="text-sm text-red-300">❌ Error loading habits: {habitsQuery.error?.message}</p>
+                </Card>
+              ) : habitsQuery.data?.length ? (
+                <div className="stack-gap-sm">
+                  {habitsQuery.data.map((habit, idx) => {
+                    const streak = calcStreak(habit.completedDates || []);
+                    return streak > 0 ? (
+                      <Card key={habit._id || idx} className="p-4 primary">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-[0.9rem] font-bold text-white mb-1">
+                              {habit.name}
+                            </div>
+                            <div className="text-[0.8rem] text-secondary">
+                              {streak} day streak
+                            </div>
+                          </div>
+                          <div className="text-[1.5rem]">🔥</div>
+                        </div>
+                      </Card>
+                    ) : null;
+                  })}
+                </div>
+              ) : (
+                <Card className="p-6 text-center primary">
+                  <p className="text-secondary text-[0.9rem]">No active streaks yet</p>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* ── GOALS TAB ── */}
       {activeTab === 'Goals' && (
-        <div className="split-layout">
-          {/* Left: Habit Goals with real streak data */}
-          <div className="stack-gap-lg">
-            <span className="ml-1 uppercase label-sub">Habit Momentum</span>
-
-            {habitsQuery.isLoading ? (
-              <Skeleton height="200px" />
-            ) : !habitsQuery.data?.length ? (
-              <Card className="p-12 text-center primary">
-                <div className="text-[2rem] mb-4">🎯</div>
-                <div className="text-white font-[900] text-[1.2rem] mb-2">Awaiting your habits...</div>
-                <p className="text-secondary text-[0.9rem] leading-relaxed max-w-xs mx-auto italic">
-                  Add habits from your dashboard to track long-term progress goals here.
-                </p>
-              </Card>
-            ) : (
-              <div className="stack-gap-md">
-                {habitsQuery.data.map(habit => {
-                  const streak = calcStreak(habit.completedDates ?? []);
-                  const total = habit.completedDates?.length ?? 0;
-                  const today = new Date().toISOString().split('T')[0];
-                  const doneToday = habit.completedDates?.some(d => d.startsWith(today));
-                  const consistency = total > 0 ? Math.min(100, Math.round((total / 30) * 100)) : 0;
-
-                  return (
-                    <Card key={habit._id} className="p-5 transition-all primary hover:border-accent/20">
-                      <div className="flex items-start justify-between mb-5">
-                        <div>
-                          <div className="font-black text-[1.1rem] text-white leading-none mb-2">{habit.name}</div>
-                          <div className={`text-[0.65rem] font-bold uppercase tracking-widest ${doneToday ? 'text-[#06d6a0]' : 'text-secondary/40'}`}>
-                            {doneToday ? 'Daily Objective Secured' : 'Awaiting Daily Confirmation'}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-[1.8rem] font-black tracking-tighter leading-none ${streak > 0 ? 'text-white' : 'text-[#222]'}`}>
-                            🔥 {streak}
-                          </div>
-                          <div className="text-[0.6rem] text-secondary font-black uppercase tracking-widest mt-1">day streak</div>
-                        </div>
-                      </div>
-
-                      <div className="stack-gap-sm">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[0.65rem] text-secondary font-black uppercase tracking-widest">30-day consistency</span>
-                          <span className={`text-[0.72rem] font-black ${consistency >= 70 ? 'text-[#06d6a0]' : 'text-accent'}`}>{consistency}%</span>
-                        </div>
-                        <div className="h-1 bg-[#111] rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-700 ${consistency >= 70 ? 'bg-[#06d6a0]' : 'bg-accent'}`} 
-                            style={{ width: `${consistency}%` }} 
-                          />
-                        </div>
-                      </div>
-
-                      <div className="text-[0.6rem] text-secondary/30 font-black uppercase tracking-widest mt-4">
-                        {total} total check-ins
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Summary stats */}
-          <div className="stack-gap-lg">
-            <Card className="primary compact-card">
-              <span className="label-sub !mb-4">Active Habits</span>
-              {habitsQuery.isLoading ? <Skeleton height="50px" /> : (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{habitsQuery.data?.length ?? 0}</span>
-                  <span className="label-sub uppercase !text-[0.7rem]">Active</span>
-                </div>
-              )}
-            </Card>
-
-            <Card className="primary compact-card">
-              <span className="label-sub !mb-4">Peak Momentum</span>
-              {habitsQuery.isLoading ? <Skeleton height="50px" /> : (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">
-                    {habitsQuery.data?.reduce((max, h) => Math.max(max, calcStreak(h.completedDates ?? [])), 0) ?? 0}
-                  </span>
-                  <span className="label-sub uppercase !text-[0.7rem]">Days</span>
-                </div>
-              )}
-            </Card>
-
-            <Card className="primary compact-card">
-              <span className="label-sub !mb-4">Today's Success</span>
-              {habitsQuery.isLoading ? <Skeleton height="50px" /> : (() => {
-                const todayStr = new Date().toISOString().split('T')[0];
-                const done = habitsQuery.data?.filter(h => h.completedDates?.some(d => d.startsWith(todayStr))).length ?? 0;
-                const total = habitsQuery.data?.length ?? 0;
-                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                return (
-                  <div className="stack-gap-sm">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{done}</span>
-                      <span className="label-sub uppercase !text-[0.7rem]">/ {total} Done</span>
-                    </div>
-                    <div className="h-1 bg-[#111] rounded-full overflow-hidden mt-2">
-                      <div className={`h-full transition-all duration-700 ${pct === 100 ? 'bg-[#06d6a0]' : 'bg-accent'}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="text-[0.65rem] font-black text-secondary/40 uppercase tracking-widest mt-1">{pct}% checklist done</div>
-                  </div>
-                );
-              })()}
-            </Card>
-          </div>
+        <div className="stack-gap-md">
+          <span className="ml-1 uppercase label-sub">Personal Objectives</span>
+          <Card className="p-8 text-center primary">
+            <div className="text-[2rem] mb-4">🎯</div>
+            <div className="text-white font-[900] text-[1.1rem] mb-2">Goals Section</div>
+            <p className="text-secondary text-[0.9rem] leading-relaxed">
+              View and track your personal goals and affirmations here.
+            </p>
+          </Card>
         </div>
       )}
     </div>

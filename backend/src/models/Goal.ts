@@ -29,4 +29,8 @@ const goalSchema = new Schema<IGoal>({
   },
 });
 
+// Add indexes for common queries
+goalSchema.index({ userId: 1 });
+goalSchema.index({ userId: 1, type: 1 });
+
 export default mongoose.model<IGoal>('Goal', goalSchema);

@@ -1,102 +1,144 @@
-# GrowthOS
+# GrowthOS — Personal Growth & Productivity Platform
 
-GrowthOS is a personal productivity and self-awareness system designed to bridge the gap between planning and actual execution.
-
-Instead of just helping users organize tasks, it focuses on understanding behavior — tracking execution, identifying patterns, and improving consistency through structured reflection and data-driven insights.
+> A full-stack MERN application designed to help users track their personal growth through tasks, habits, reflections, and data-driven insights.
 
 ## 🔗 Links
+- **Live Demo**: [https://growth-os-chi.vercel.app](https://growth-os-chi.vercel.app)
+- **GitHub Repository**: [https://github.com/Samiksha-Lone/growth-os](https://github.com/Samiksha-Lone/growth-os)
 
-- 🚀 **Live Demo**: [https://growth-os-chi.vercel.app/](https://growth-os-chi.vercel.app/)
-- 💻 **GitHub Repository**: [https://github.com/Samiksha-Lone/growth-os](https://github.com/Samiksha-Lone/growth-os)
+## Overview
+
+GrowthOS is a comprehensive personal productivity and growth tracking platform that empowers users to build better habits, manage tasks effectively, and gain insights from their daily progress patterns. It combines modern productivity techniques like the Pomodoro method with comprehensive analytics to help users understand their patterns and optimize their performance.
 
 ## Problem Statement
 
-This project started from a simple problem: staying consistent is harder than planning. Most productivity tools help you organize tasks, but they don't help you understand your behavior. You can plan perfectly and still fail to execute. There is no clear system to track why tasks are missed, how habits form, or what patterns affect productivity. GrowthOS was built to solve this gap — by combining planning, tracking, reflection, and insights into a single structured system.
+- **Fragmented Productivity Tools**: Users struggle with multiple disjointed applications to track tasks, habits, and progress.
+- **Lack of Actionable Insights**: Limited understanding of personal patterns and productivity trends without meaningful data analysis.
+- **No Unified Growth Tracking**: Difficulty in correlating mood, productivity, and task completion to identify improvement areas.
 
-## Solution Overview
+## Solution
 
-GrowthOS provides a comprehensive system for daily planning, real-time tracking, evening reflections, and long-term analytics. It enables users to set goals, monitor habits, analyze productivity patterns, and receive data-driven insights to improve consistency and performance over time.
+GrowthOS provides a centralized platform that consolidates all aspects of personal growth tracking. It combines task management, habit tracking, mood logging, and data-driven analytics to give users a holistic view of their progress and actionable recommendations for improvement.
 
-## System Architecture
+## Key Features
 
-- **Frontend**: React 18 with TypeScript and Tailwind CSS
-- **Backend**: Node.js with Express.js and MongoDB (Mongoose)
-- **State Management**: React Query (TanStack Query) for robust data synchronization
-- **Visualization**: Recharts for interactive productivity trends and heatmaps
-- **Authentication**: Secure JWT-based sessions with protected routing
+- 🔐 **Secure Authentication** — JWT-based user authentication with password hashing and token authorization
+- 📋 **Task Management** — Create, organize, and track tasks by priority and category (Work/Study/Health/Personal)
+- 🔄 **Habit Tracking** — Build habits with streak counters and completion tracking
+- 📝 **Daily Reflections** — Log mood, productivity scores, and personal learnings
+- 💡 **Data-Driven Insights** — Pattern analysis with task trends, habit streaks, mood analysis, and recommendations
+- 📊 **Advanced Analytics** — Statistics on completion rates, task trends, habit consistency, and productivity metrics
+- ⏱️ **Pomodoro Timer** — Focus sessions with automatic tracking and analytics
+- 🎯 **Goals & Affirmations** — Set and track personal goals and affirmations
+- 🧠 **Reality Checks** — Daily analysis of planned vs. completed tasks
+- 📈 **Dashboard** — Real-time overview of progress, habits, and performance
+- 📱 **Responsive UI** — Mobile-optimized design with smooth animations
+- 📜 **History Page** — View historical data and past activities
 
-## 🚀 Core Features
+## Tech Stack
 
-*   **📊 Personalized Dashboard**: A central hub to track daily progress, active habits, and focus metrics at a glance.
-*   **📅 Daily Task Planner**: A simple yet effective planning tool to organize tasks by priority (High/Med/Low) and categories.
-*   **🕰️ Task History**: A full timeline of all past activities, grouped by date to track growth over time.
-*   **🕒 Focus Mode (Pomodoro)**: An integrated timer system to help maintain deep work sessions.
-*   **🔄 Habit Tracker**: Build consistency with daily check-ins and streak monitoring.
-*   **🧠 Statistical Insights**: Non-AI behavioral analysis that uses Z-scores and variance to identify your productivity patterns.
-*   **📈 Progress Analytics**: Interactive charts and heatmaps to visualize weekly trends and efficiency.
-*   **📝 Daily Reflection**: A structured journal to capture mood, lessons learned, and productivity blockers.
-*   **⚖️ Reality Check**: A unique tool that compares your "Planned vs. Actual" performance to improve planning accuracy.
-*   **📱 Mobile Responsive**: Fully optimized for mobile devices with a hamburger menu, touch-friendly interfaces, and responsive layouts.
+| Layer | Technology |
+|---|---|
+| **Frontend** | React.js, Vite, Tailwind CSS, React Query, React Router |
+| **Backend** | Node.js, Express.js |
+| **Database** | MongoDB Atlas |
+| **Auth & Security** | JWT, bcryptjs, Helmet.js, express-rate-limit |
+| **Analytics** | Data aggregation, pattern analysis, trend visualization |
+| **Email** | Nodemailer (SMTP) |
+| **Deployment** | Vercel (frontend), Render (backend) |
 
-## 🛠️ Tech Stack
+## Architecture / Flow
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS, React Query, Recharts
-- **Backend**: Node.js, Express.js, TypeScript, Mongoose
-- **Database**: MongoDB
-- **Styling**: Vanilla CSS + Tailwind CSS (Glassmorphism & Dark Mode)
+```text
+User → React Frontend → Axios → Express API → MongoDB
+                                      ↓
+                           JWT Auth · Rate Limiting
+                           Nodemailer · Business Logic
+```
 
-## ⚙️ Installation / Setup
+## My Contribution
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Samiksha-Lone/growth-os.git
-   cd growthos
-   ```
+**I independently designed and built this entire project from scratch**, including:
 
-2. **Install dependencies**
-   ```bash
-   # Backend
-   cd backend
-   npm install
+- 🖥️ **Frontend** — All React components, routing, state management, and responsive UI
+- ⚙️ **Backend** — Express server, RESTful APIs, MongoDB schemas, and business logic
+- 📊 **Analytics & Insights** — Data aggregation, pattern analysis, and insight generation
+- 🔐 **Authentication** — Secure user authentication flows and authorization middleware
+- 🚀 **Deployment** — Environment setup, MongoDB Atlas integration, and full-stack deployment
 
-   # Frontend
-   cd ../frontend
-   npm install
-   ```
+## Setup
 
-3. **Set up environment variables**
-   - Create `.env` files in both backend and frontend directories
-   - Add `MONGODB_URI`, `JWT_SECRET` in backend
-   - Add `VITE_API_URL` in frontend
+### Prerequisites
+Node.js 18+, npm, MongoDB Atlas account
 
-4. **Run the application**
-   ```bash
-   # Backend (from /backend)
-   npm run dev
+### 1. Backend
 
-   # Frontend (from /frontend)
-   npm run dev
-   ```
+```bash
+cd backend
+npm install
+```
 
-## 📸 Screenshots
+Create a `.env` file:
 
-![Dashboard Overview](outputs/dashboard.webp)
+```env
+PORT=5000
+MONGO_URI=mongodb+srv://<your-cluster>
+JWT_SECRET=your_secret_key
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+FRONTEND_URL=http://localhost:3000
+```
 
-![Task Planner Interface](outputs/planner.webp)
+```bash
+npm run dev   # http://localhost:5000
+```
 
-![Reflection Journal](outputs/reflection.webp)
+### 2. Frontend
 
-![Analytics Dashboard](outputs/analytics.webp)
+```bash
+cd frontend
+npm install
+```
 
-## Key Highlights
+Create a `.env.local` file:
 
-- **Premium Aesthetics**: Dark-mode focused UI with modern typography and smooth micro-animations.
-- **Data Integrity**: Statistical baselining for accurate progress tracking without relying on external AI APIs.
-- **Execution Focused**: Designed specifically to bridge the "Planning-Execution" gap.
+```env
+VITE_API_BASE=http://localhost:5000/api
+```
+
+```bash
+npm run dev   # http://localhost:5173
+```
+
+## Screenshots
+
+### Dashboard
+![Dashboard](outputs/dashboard.webp)
+
+### Planner
+![Habits](outputs/planner.webp)
+
+### Reflections
+![Insights](outputs/reflection.webp)
+
+### Analytics
+![Analytics](outputs/Analytics.webp)
+
+## Future Improvements
+
+- [ ] Social features for sharing progress with friends
+- [ ] Advanced machine learning models for predictive analytics
+- [ ] Integration with third-party productivity tools (Notion, Slack)
+- [ ] Mobile native app for iOS and Android
+- [ ] Customizable dashboard widgets
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+ISC License — see [LICENSE](LICENSE) for details.
+
+## Credits
+
+**Developed by [Samiksha Lone](https://github.com/Samiksha-Lone)**
 
 ## Credit
 

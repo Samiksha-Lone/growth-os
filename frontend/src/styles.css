@@ -191,6 +191,18 @@
 .stack-gap-md { @apply flex flex-col gap-4; }
 .stack-gap-sm { @apply flex flex-col gap-2; }
 
+/* Skeleton Loader */
+.skeleton {
+  @apply bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#1a1a1a] rounded-lg;
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 /* Modal enhancements */
 .modal-overlay {
   @apply fixed inset-0 flex items-center justify-center z-[100] px-4 py-6 bg-black/90;

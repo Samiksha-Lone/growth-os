@@ -56,7 +56,11 @@ export class ReflectionController {
 
   static async getReflections(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const reflections = await ReflectionService.getReflections(req.user._id);
+      const { limit = 30, skip = 0 } = req.query;
+      const pageLimit = Math.min(parseInt(limit as string) || 30, 100);
+      const pageSkip = parseInt(skip as string) || 0;
+      
+      const reflections = await ReflectionService.getReflections(req.user._id, pageLimit, pageSkip);
       res.json({ reflections });
     } catch (error: any) {
       next(error);

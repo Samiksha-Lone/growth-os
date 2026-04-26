@@ -9,29 +9,65 @@ export class AnalyticsService {
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
 
-    const tasks = await Task.find({
-      userId,
-      date: { $gte: startOfDay, $lt: endOfDay },
-    });
+    const result = await Task.aggregate([
+      {
+        $match: {
+          userId: { $eq: userId },
+          date: { $gte: startOfDay, $lt: endOfDay },
+        },
+      },
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+          completed: [
+            { $match: { status: 'Completed' } },
+            { $count: 'count' },
+          ],
+        },
+      },
+    ]);
 
-    if (tasks.length === 0) return 0;
+    const totalCount = result[0].total[0]?.count || 0;
+    const completedCount = result[0].completed[0]?.count || 0;
 
-    const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-    return Math.round((completedTasks / tasks.length) * 100);
+    if (totalCount === 0) return 0;
+    return Math.round((completedCount / totalCount) * 100);
   }
+
   static async getWeeklyCompletionTrend(userId: string): Promise<any[]> {
     const shortDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    const trend = [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculate date range
+    const sixDaysAgo = new Date(today);
+    sixDaysAgo.setDate(today.getDate() - 6);
 
+    // Fetch all tasks for the week in ONE query
+    const tasks = await Task.find({
+      userId,
+      date: { $gte: sixDaysAgo, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+    });
+
+    // Group and calculate in memory
+    const trend = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
-      d.setHours(0, 0, 0, 0);
       d.setDate(today.getDate() - i);
-      const rate = await this.getDailyCompletionRate(userId, d);
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+
+      const dayTasks = tasks.filter(
+        t => t.date >= dayStart && t.date < dayEnd
+      );
+      const completed = dayTasks.filter(t => t.status === 'Completed').length;
+      const rate = dayTasks.length === 0 ? 0 : Math.round((completed / dayTasks.length) * 100);
+
       trend.push({
         day: shortDays[d.getDay()],
-        value: rate
+        value: rate,
       });
     }
     return trend;
@@ -41,23 +77,45 @@ export class AnalyticsService {
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 7);
 
-    const tasks = await Task.find({
-      userId,
-      date: { $gte: startDate, $lt: endDate },
-    });
+    // Use aggregation pipeline for better performance
+    const result = await Task.aggregate([
+      {
+        $match: {
+          userId: { $eq: userId },
+          date: { $gte: startDate, $lt: endDate },
+        },
+      },
+      {
+        $facet: {
+          stats: [
+            {
+              $group: {
+                _id: null,
+                totalTasks: { $sum: 1 },
+                completedTasks: {
+                  $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] },
+                },
+              },
+            },
+          ],
+        },
+      },
+    ]);
 
-    const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-    const totalTasks = tasks.length;
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const stats = result[0].stats[0] || { totalTasks: 0, completedTasks: 0 };
+    const completionRate = stats.totalTasks > 0
+      ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+      : 0;
 
+    // Get habit stats
     const habits = await Habit.find({ userId });
     const habitCompletionRate = habits.length > 0
       ? habits.reduce((acc, habit) => acc + (habit.completedDates.length / 7 * 100), 0) / habits.length
       : 0;
 
     return {
-      totalTasks,
-      completedTasks,
+      totalTasks: stats.totalTasks,
+      completedTasks: stats.completedTasks,
       completionRate,
       habitCompletionRate: Math.round(habitCompletionRate),
     };
@@ -67,14 +125,35 @@ export class AnalyticsService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    const tasks = await Task.find({
-      userId,
-      date: { $gte: startDate, $lt: endDate },
-    });
+    // Use aggregation pipeline
+    const result = await Task.aggregate([
+      {
+        $match: {
+          userId: { $eq: userId },
+          date: { $gte: startDate, $lt: endDate },
+        },
+      },
+      {
+        $facet: {
+          stats: [
+            {
+              $group: {
+                _id: null,
+                totalTasks: { $sum: 1 },
+                completedTasks: {
+                  $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] },
+                },
+              },
+            },
+          ],
+        },
+      },
+    ]);
 
-    const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-    const totalTasks = tasks.length;
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const stats = result[0].stats[0] || { totalTasks: 0, completedTasks: 0 };
+    const completionRate = stats.totalTasks > 0
+      ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+      : 0;
 
     const reflections = await Reflection.find({
       userId,
@@ -90,8 +169,8 @@ export class AnalyticsService {
       : 0;
 
     return {
-      totalTasks,
-      completedTasks,
+      totalTasks: stats.totalTasks,
+      completedTasks: stats.completedTasks,
       completionRate,
       avgMood: Math.round(avgMood * 100) / 100,
       avgProductivity: Math.round(avgProductivity * 100) / 100,
@@ -122,7 +201,7 @@ export class AnalyticsService {
     const reflections = await Reflection.find({
       userId,
       date: { $gte: startDate },
-    }).sort({ date: 1 });
+    }).sort({ date: 1 }).lean(); // Use lean() for read-only queries
 
     return reflections.map(r => ({
       date: r.date.toISOString().split('T')[0],

@@ -45,9 +45,12 @@ export class TaskController {
 
   static async getTasks(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { date, status, category, priority } = req.query;
+      const { date, status, category, priority, limit = 20, skip = 0 } = req.query;
       const filters = { date: date as string, status: status as string, category: category as string, priority: priority as string };
-      const tasks = await TaskService.getTasks(req.user?._id, filters);
+      const pageLimit = Math.min(parseInt(limit as string) || 20, 100); // Cap at 100
+      const pageSkip = parseInt(skip as string) || 0;
+      
+      const tasks = await TaskService.getTasks(req.user?._id, filters, pageLimit, pageSkip);
 
       res.json({ tasks });
     } catch (error: any) {

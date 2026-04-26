@@ -20,7 +20,7 @@ export class TaskService {
     return task.save();
   }
 
-  static async getTasks(userId: string, filters: any = {}): Promise<ITask[]> {
+  static async getTasks(userId: string, filters: any = {}, limit: number = 20, skip: number = 0): Promise<ITask[]> {
     const query: any = { userId };
 
     if (filters.date) {
@@ -35,7 +35,11 @@ export class TaskService {
     if (filters.category) query.category = filters.category;
     if (filters.priority) query.priority = filters.priority;
 
-    return Task.find(query).sort({ date: -1, createdAt: -1 });
+    return Task.find(query)
+      .sort({ date: -1, createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean(); // Use lean() for read-only queries
   }
 
   static async updateTask(taskId: string, userId: string, updates: Partial<ITask>): Promise<ITask | null> {

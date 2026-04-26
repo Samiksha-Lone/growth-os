@@ -4,8 +4,10 @@ import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, Realit
 export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
   const dateStr = date || new Date().toLocaleDateString('en-CA');
   const [tasks, habits, focus] = await Promise.all([
-    api.get('/tasks', { params: { date: dateStr } }),
-    api.get('/habits'),
+    // Fetch only 50 tasks for the dashboard
+    api.get('/tasks', { params: { date: dateStr, limit: 50, skip: 0 } }),
+    // Fetch only 20 habits for the dashboard
+    api.get('/habits', { params: { limit: 20, skip: 0 } }),
     api.get('/pomodoro/total-focus-time', { params: { startDate: dateStr, endDate: dateStr } }),
   ]);
 
@@ -35,8 +37,8 @@ export async function fetchWeeklyChartData(): Promise<{ day: string; value: numb
   }
 }
 
-export async function fetchTasks(date?: string): Promise<Task[]> {
-  const response = await api.get('/tasks', { params: { date } });
+export async function fetchTasks(date?: string, limit: number = 20, skip: number = 0): Promise<Task[]> {
+  const response = await api.get('/tasks', { params: { date, limit, skip } });
   return response.data.tasks || [];
 }
 
@@ -62,13 +64,13 @@ export async function createTask(taskData: Partial<Task>): Promise<Task> {
   }
 }
 
-export async function fetchHabits(): Promise<Habit[]> {
-  const response = await api.get('/habits');
+export async function fetchHabits(limit: number = 50, skip: number = 0): Promise<Habit[]> {
+  const response = await api.get('/habits', { params: { limit, skip } });
   return response.data.habits || [];
 }
 
-export async function fetchReflections(): Promise<Reflection[]> {
-  const response = await api.get('/reflections');
+export async function fetchReflections(limit: number = 30, skip: number = 0): Promise<Reflection[]> {
+  const response = await api.get('/reflections', { params: { limit, skip } });
   return response.data.reflections || [];
 }
 
@@ -83,31 +85,44 @@ export async function createReflection(reflection: Partial<Reflection>): Promise
 }
 
 export async function fetchInsights(): Promise<AdvancedAnalytics> {
-  const response = await api.get('/ai/insights');
-  
-  // Handle the new comprehensive analytics response
-  const insightsData = response.data.insights || response.data;
-  
-  if (Array.isArray(insightsData)) {
-    const formattedInsights = insightsData.map((item: any, index: number) => ({
-      id: item._id || index.toString(),
-      title: `${(item.category || item.type || 'Insight').toUpperCase()}`,
-      detail: item.message || item.detail,
+  try {
+    const response = await api.get('/insights/insights');
+    
+    console.log('Insights API Response:', response.data);
+    
+    // Handle the response from backend
+    const data = response.data;
+    
+    // Ensure insights is an array
+    let insightsArray = Array.isArray(data.insights) ? data.insights : [];
+    
+    // Format insights
+    const formattedInsights = insightsArray.map((item: any, index: number) => ({
+      id: item._id || `insight-${index}`,
+      title: item.title || item.category || item.type || 'Insight',
+      detail: item.message || item.detail || '',
     }));
+
+    // Format scores as strings
+    const scores = {
+      consistency: String(data.scores?.consistency ?? '0'),
+      goalAlignment: String(data.scores?.goalAlignment ?? '0'),
+    };
 
     return {
       insights: formattedInsights,
-      scores: response.data.scores || { consistency: '0', goalAlignment: '0' },
-      summary: response.data.summary || { total: 0, highSeverity: 0, actionable: 0 }
+      scores,
+      summary: data.summary || { total: 0, highSeverity: 0, actionable: 0 }
+    };
+  } catch (error: any) {
+    console.error('Error fetching insights:', error);
+    // Don't throw - return empty insights so the UI shows the "learning patterns" message
+    return {
+      insights: [],
+      scores: { consistency: '0', goalAlignment: '0' },
+      summary: { total: 0, highSeverity: 0, actionable: 0 }
     };
   }
-
-  // Fallback for empty or unrecognized format
-  return {
-    insights: [],
-    scores: { consistency: '0', goalAlignment: '0' },
-    summary: { total: 0, highSeverity: 0, actionable: 0 }
-  };
 }
 
 export async function fetchRealitySummary(date?: string): Promise<RealitySummary> {

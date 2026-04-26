@@ -31,4 +31,8 @@ const habitSchema = new Schema<IHabit>({
   timestamps: true,
 });
 
+// Add indexes for common queries
+habitSchema.index({ userId: 1 });
+habitSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.model<IHabit>('Habit', habitSchema);

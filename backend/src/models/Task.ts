@@ -60,4 +60,11 @@ const taskSchema = new Schema<ITask>({
   timestamps: true,
 });
 
+// Add indexes for common queries
+taskSchema.index({ userId: 1, date: -1 });
+taskSchema.index({ userId: 1, status: 1 });
+taskSchema.index({ userId: 1, category: 1 });
+taskSchema.index({ userId: 1, createdAt: -1 });
+taskSchema.index({ date: 1 });
+
 export default mongoose.model<ITask>('Task', taskSchema);

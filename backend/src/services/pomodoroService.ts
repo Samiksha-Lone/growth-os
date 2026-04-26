@@ -16,7 +16,9 @@ export class PomodoroService {
       query.date = { $gte: startOfDay, $lt: endOfDay };
     }
 
-    return PomodoroSession.find(query).sort({ createdAt: -1 });
+    return PomodoroSession.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
   }
 
   static async getTotalFocusTime(userId: string, startDate?: Date, endDate?: Date): Promise<number> {
@@ -26,7 +28,17 @@ export class PomodoroService {
       query.date = { $gte: startDate, $lt: endDate };
     }
 
-    const sessions = await PomodoroSession.find(query);
-    return sessions.reduce((total, session) => total + session.duration, 0);
+    // Use aggregation pipeline for better performance
+    const result = await PomodoroSession.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$duration' }
+        }
+      }
+    ]);
+
+    return result[0]?.total || 0;
   }
 }

@@ -17,8 +17,13 @@ export class ReflectionService {
     });
   }
 
-  static async getReflections(userId: string): Promise<IReflection[]> {
-    return Reflection.find({ userId }).sort({ date: -1 }).exec();
+  static async getReflections(userId: string, limit: number = 30, skip: number = 0): Promise<IReflection[]> {
+    return Reflection.find({ userId })
+      .sort({ date: -1 })
+      .limit(limit)
+      .skip(skip)
+      .lean()
+      .exec();
   }
 
   static async updateReflection(reflectionId: string, userId: string, updates: Partial<IReflection>): Promise<IReflection | null> {

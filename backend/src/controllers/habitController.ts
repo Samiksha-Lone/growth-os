@@ -58,7 +58,11 @@ export class HabitController {
 
   static async getHabits(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const habits = await HabitService.getHabits(req.user?._id);
+      const { limit = 50, skip = 0 } = req.query;
+      const pageLimit = Math.min(parseInt(limit as string) || 50, 100);
+      const pageSkip = parseInt(skip as string) || 0;
+      
+      const habits = await HabitService.getHabits(req.user?._id, pageLimit, pageSkip);
       res.json({ habits });
     } catch (error: any) {
       next(error);

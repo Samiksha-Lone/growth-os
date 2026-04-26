@@ -26,4 +26,8 @@ const pomodoroSchema = new Schema<IPomodoroSession>({
   timestamps: true,
 });
 
+// Add indexes for common queries
+pomodoroSchema.index({ userId: 1, date: -1 });
+pomodoroSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.model<IPomodoroSession>('PomodoroSession', pomodoroSchema);
