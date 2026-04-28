@@ -122,7 +122,7 @@ npm run dev   # http://localhost:5173
 ![Insights](outputs/reflection.webp)
 
 ### Analytics
-![Analytics](outputs/Analytics.webp)
+![Analytics](outputs/analytics.webp)
 
 ## Future Improvements
 
