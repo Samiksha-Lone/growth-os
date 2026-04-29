@@ -55,12 +55,20 @@ export default function HabitsPage() {
 
   const { data: habits = [], isLoading } = useQuery<Habit[]>({
     queryKey: ['habits'],
-    queryFn: fetchHabits
+    queryFn: () => fetchHabits(50), // Limit to 50
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: goals = [], isLoading: isGoalsLoading } = useQuery<Goal[]>({
     queryKey: ['goals'],
-    queryFn: fetchGoals
+    queryFn: fetchGoals,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const createMutation = useMutation({

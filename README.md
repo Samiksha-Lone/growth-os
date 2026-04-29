@@ -127,10 +127,15 @@ npm run dev   # http://localhost:5173
 ## Future Improvements
 
 - [ ] Social features for sharing progress with friends
-- [ ] Advanced machine learning models for predictive analytics
+- [ ] Real-time WebSocket updates across devices
 - [ ] Integration with third-party productivity tools (Notion, Slack)
 - [ ] Mobile native app for iOS and Android
 - [ ] Customizable dashboard widgets
+- [ ] Advanced notifications and reminders
+- [ ] Data export (JSON, CSV, PDF)
+- [ ] Dark/Light theme toggle
+- [ ] OAuth login (Google, GitHub)
+- [ ] Accountability partner matching
 
 ## License
 

@@ -47,12 +47,20 @@ export default function PlannerPage() {
 
   const { data, isLoading } = useQuery<Task[]>({
     queryKey: ['tasks', localDate],
-    queryFn: () => fetchTasks(localDate)
+    queryFn: () => fetchTasks(localDate, 30), // Limit to 30 per day
+    staleTime: 3 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const habitsQuery = useQuery<Habit[]>({
     queryKey: ['habits'],
-    queryFn: () => fetchHabits()
+    queryFn: () => fetchHabits(20), // Limit to 20
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const filteredTasks = useMemo(() => data?.filter(t => t.status === activeTab) ?? [], [data, activeTab]);

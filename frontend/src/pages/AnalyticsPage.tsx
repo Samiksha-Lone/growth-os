@@ -44,23 +44,42 @@ export default function AnalyticsPage() {
 
   const statsQuery = useQuery<DashboardStats>({ 
     queryKey: ['analytics', 'stats', localDate], 
-    queryFn: () => fetchDashboardStats(localDate) 
+    queryFn: () => fetchDashboardStats(localDate),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const habitsQuery = useQuery<Habit[]>({ 
     queryKey: ['habits'], 
-    queryFn: () => fetchHabits() 
+    queryFn: () => fetchHabits(30), // Limit to 30
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const goalsQuery = useQuery<Goal[]>({ 
     queryKey: ['goals'], 
-    queryFn: () => fetchGoals() 
+    queryFn: () => fetchGoals(),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const realityQuery = useQuery<RealitySummary>({ 
     queryKey: ['reality', localDate], 
-    queryFn: () => fetchRealitySummary(localDate) 
+    queryFn: () => fetchRealitySummary(localDate),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const weeklyQuery = useQuery({ 
     queryKey: ['analytics', 'weekly-trend'], 
-    queryFn: () => fetchWeeklyChartData() 
+    queryFn: () => fetchWeeklyChartData(),
+    staleTime: 30 * 60 * 1000, // Weekly data caches longer
+    gcTime: 60 * 60 * 1000,
+    retry: 1,
   });
 
   const habits = habitsQuery.data ?? [];

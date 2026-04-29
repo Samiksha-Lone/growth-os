@@ -28,22 +28,34 @@ export default function InsightsPage() {
     queryKey: ['insights'], 
     queryFn: fetchInsights,
     retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
     enabled: true
   });
   const realityQuery = useQuery<RealitySummary>({ 
     queryKey: ['reality', localDate], 
     queryFn: () => fetchRealitySummary(localDate),
-    retry: 1
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
   const habitsQuery = useQuery<Habit[]>({ 
     queryKey: ['habits'], 
-    queryFn: () => fetchHabits(),
-    retry: 1
+    queryFn: () => fetchHabits(20), // Limit to 20 habits initially
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
   const tasksQuery = useQuery<Task[]>({ 
     queryKey: ['tasks'], 
-    queryFn: () => fetchTasks(),
-    retry: 1
+    queryFn: () => fetchTasks(undefined, 20), // Limit to 20 tasks initially
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const reality = realityQuery.data;

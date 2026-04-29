@@ -5,7 +5,8 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 10000 // 10 second timeout for all requests
 });
 
 api.interceptors.request.use((config) => {
@@ -22,6 +23,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('growthos_token');
+    }
+    // Log timeout errors for debugging on deployed site
+    if (error.code === 'ECONNABORTED') {
+      console.warn('API Request Timeout:', error.config?.url);
     }
     return Promise.reject(error);
   }

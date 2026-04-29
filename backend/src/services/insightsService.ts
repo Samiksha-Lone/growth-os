@@ -74,7 +74,7 @@ export class InsightsService {
         ? (previousTasksCompleted / previousTasks.length) * 100 
         : 0;
       
-      if (currentCompletionRate > previousCompletionRate + 10) {
+      if (previousTasks.length > 0 && currentCompletionRate > previousCompletionRate + 10) {
         insights.push({
           type: 'task',
           title: 'Great Task Momentum',
@@ -82,7 +82,7 @@ export class InsightsService {
           category: 'Task Completion',
           severity: 'low',
         });
-      } else if (currentCompletionRate < previousCompletionRate - 10) {
+      } else if (previousTasks.length > 0 && currentCompletionRate < previousCompletionRate - 10) {
         insights.push({
           type: 'task',
           title: 'Task Completion Dip',
@@ -90,10 +90,19 @@ export class InsightsService {
           category: 'Task Completion',
           severity: 'medium',
         });
+      } else if (previousTasks.length === 0) {
+        // Early-stage insight: Show completion rate progress
+        insights.push({
+          type: 'task',
+          title: 'Your Progress So Far',
+          message: `You've completed ${currentTasksCompleted} out of ${currentTasks.length} tasks (${Math.round(currentCompletionRate)}%). Keep tracking your work!`,
+          category: 'Task Completion',
+          severity: 'low',
+        });
       }
     }
 
-    // Habit Streak Analysis
+    // Habit Streak Analysis - Lowered thresholds for early-stage users
     for (const habit of habits) {
       const completedDates = habit.completedDates || [];
       if (completedDates.length > 0) {
@@ -115,7 +124,8 @@ export class InsightsService {
           } else break;
         }
         
-        if (currentStreak > 7) {
+        // Show streak if 3+ days (lowered from 7+ for early users)
+        if (currentStreak >= 3) {
           insights.push({
             type: 'habit',
             title: `${currentStreak}-Day ${habit.name} Streak!`,
@@ -123,20 +133,29 @@ export class InsightsService {
             category: 'Habit Building',
             severity: 'low',
           });
+        } else if (currentStreak === 1 && unique.length > 0) {
+          // Encourage early starters
+          insights.push({
+            type: 'habit',
+            title: `Started "${habit.name}"`,
+            message: `Great start with "${habit.name}"! Complete it again tomorrow to build momentum.`,
+            category: 'Habit Building',
+            severity: 'low',
+          });
         }
       }
     }
 
-    // Mood Trend Analysis
+    // Mood Trend Analysis - More lenient thresholds for early data
     if (currentReflections.length > 0) {
       const moods = currentReflections.map((r: any) => r.mood || 0);
       const avgMood = moods.reduce((a: number, b: number) => a + b, 0) / moods.length;
       
-      if (avgMood >= 8) {
+      if (avgMood >= 7.5) {
         insights.push({
           type: 'mood',
-          title: 'Positive Week Ahead',
-          message: `Your mood average this week is ${avgMood.toFixed(1)}/10. You're in a great mental state - capitalize on this energy!`,
+          title: 'Great Mental State',
+          message: `Your mood average is ${avgMood.toFixed(1)}/10. You're feeling positive - great time to tackle ambitious goals!`,
           category: 'Mood & Wellness',
           severity: 'low',
         });
@@ -144,34 +163,46 @@ export class InsightsService {
         insights.push({
           type: 'mood',
           title: 'Wellness Check-in',
-          message: `Your mood average is ${avgMood.toFixed(1)}/10 this week. Consider taking a break or reaching out to someone you trust.`,
+          message: `Your mood average is ${avgMood.toFixed(1)}/10. Consider taking a break or reaching out to someone you trust.`,
           category: 'Mood & Wellness',
           severity: 'high',
         });
-      }
-    }
-
-    // Productivity Pattern Analysis
-    if (currentReflections.length > 3) {
-      const productivityScores = currentReflections.map((r: any) => r.productivity || 0);
-      const avgProductivity = productivityScores.reduce((a: number, b: number) => a + b, 0) / productivityScores.length;
-      
-      if (avgProductivity >= 7) {
+      } else if (avgMood >= 5 && avgMood < 6.5) {
+        // Middle ground - provide supportive insight
         insights.push({
-          type: 'productivity',
-          title: 'Productive Streak',
-          message: `You're maintaining a high productivity average (${avgProductivity.toFixed(1)}/10). Identify what's working and maintain these habits.`,
-          category: 'Productivity',
+          type: 'mood',
+          title: 'Building Momentum',
+          message: `Your mood is at ${avgMood.toFixed(1)}/10. Small wins today can lift your spirits higher!`,
+          category: 'Mood & Wellness',
           severity: 'low',
         });
       }
     }
 
-    // Goal Progress Analysis
+    // Productivity Pattern Analysis - Lowered threshold from 3+ to 2+
+    if (currentReflections.length >= 2) {
+      const productivityScores = currentReflections.map((r: any) => r.productivity || 0).filter((p: number) => p > 0);
+      if (productivityScores.length > 0) {
+        const avgProductivity = productivityScores.reduce((a: number, b: number) => a + b, 0) / productivityScores.length;
+        
+        if (avgProductivity >= 6.5) {
+          insights.push({
+            type: 'productivity',
+            title: 'Strong Productivity',
+            message: `You're maintaining a solid productivity average (${avgProductivity.toFixed(1)}/10). Identify what's working and maintain these habits.`,
+            category: 'Productivity',
+            severity: 'low',
+          });
+        }
+      }
+    }
+
+    // Goal Progress Analysis - Adjusted for early-stage goals
     for (const goal of goals) {
       const goalCreated = new Date(goal.createdAt);
       const daysSinceCreation = Math.floor((now.getTime() - goalCreated.getTime()) / (1000 * 60 * 60 * 24));
       
+      // Show insights for all active goals
       if (daysSinceCreation > 30) {
         insights.push({
           type: 'goal',
@@ -179,6 +210,15 @@ export class InsightsService {
           message: `"${goal.text}" has been active for ${daysSinceCreation} days. Review your progress and adjust if needed.`,
           category: 'Goal Tracking',
           severity: 'medium',
+        });
+      } else if (daysSinceCreation > 0) {
+        // Show encouragement for new goals
+        insights.push({
+          type: 'goal',
+          title: 'Goal Tracking Started',
+          message: `You're tracking "${goal.text}". Keep breaking it down into daily tasks!`,
+          category: 'Goal Tracking',
+          severity: 'low',
         });
       }
     }
@@ -203,6 +243,17 @@ export class InsightsService {
           severity: 'medium',
         });
       }
+    }
+
+    // Ensure at least one insight exists - show data summary for new users
+    if (insights.length === 0) {
+      insights.push({
+        type: 'task',
+        title: 'Your GrowthOS Dashboard',
+        message: `You have ${allTasks.length} tasks tracked and ${habits.length} habits. Keep logging your activities to see personalized insights!`,
+        category: 'Getting Started',
+        severity: 'low',
+      });
     }
 
     // Return formatted insights

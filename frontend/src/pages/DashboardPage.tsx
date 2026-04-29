@@ -26,19 +26,34 @@ export default function DashboardPage() {
 
   const statsQuery = useQuery<DashboardStats>({ 
     queryKey: ['dashboard', 'stats', localDate], 
-    queryFn: () => fetchDashboardStats(localDate) 
+    queryFn: () => fetchDashboardStats(localDate),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const tasksQuery = useQuery<Task[]>({ 
     queryKey: ['tasks'], 
-    queryFn: () => fetchTasks() 
+    queryFn: () => fetchTasks(undefined, 20), // Limit to 20 initially
+    staleTime: 3 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const realityQuery = useQuery<RealitySummary>({ 
     queryKey: ['reality', localDate], 
-    queryFn: () => fetchRealitySummary(localDate) 
+    queryFn: () => fetchRealitySummary(localDate),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const weeklyQuery = useQuery({ 
     queryKey: ['analytics', 'weekly-trend'], 
-    queryFn: () => fetchWeeklyChartData() 
+    queryFn: () => fetchWeeklyChartData(),
+    staleTime: 30 * 60 * 1000, // 30 minutes for weekly data
+    gcTime: 60 * 60 * 1000,
+    retry: 1,
   });
 
   const todayTasks = useMemo(() => {
@@ -60,16 +75,16 @@ export default function DashboardPage() {
   return (
     <div className="page-stack">
       {/* Greeting Section */}
-      <div className="stack-gap-md mb-2">
+      <div className="mb-2 stack-gap-md">
         <h1 className="title-main">{greeting.text}</h1>
         <p className="title-sub !text-secondary/60 italic">{greeting.sub}</p>
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-4 md:grid-cols-4 md:gap-8">
         {statsQuery.isLoading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="primary h-32"><Skeleton height="100%" /></Card>
+            <Card key={index} className="h-32 primary"><Skeleton height="100%" /></Card>
           ))
         ) : (
           <>
@@ -102,7 +117,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full items-start">
+      <div className="grid items-start w-full grid-cols-1 gap-4 md:grid-cols-2 md:gap-8">
         {/* Left Column */}
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-4">
@@ -112,7 +127,7 @@ export default function DashboardPage() {
                  <span className="text-[0.6rem] font-black text-secondary/40 uppercase tracking-[2px]">Top Tasks for Today</span>
                  <span className="text-[0.6rem] font-black text-accent uppercase tracking-[2px]">{todayTasks.length} Active</span>
               </div>
-              <div className="task-preview-list px-4 md:px-6">
+              <div className="px-4 task-preview-list md:px-6">
                 {tasksQuery.isLoading ? (
                   <Skeleton height="180px" />
                 ) : todayTasks.length === 0 ? (
@@ -122,7 +137,7 @@ export default function DashboardPage() {
                 ) : (
                   todayTasks.map((task, i) => (
                     <div key={task._id} className={`flex justify-between items-center py-3 md:py-4 px-3 md:px-4 border-b border-[#0a0a0a] last:border-0 gap-3 rounded-lg transition-all duration-200 hover:bg-[#1a1a1a]/40 group cursor-pointer`}>
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex items-center flex-1 min-w-0 gap-3">
                         <div 
                           className={`task-checkbox transition-all duration-200 flex-shrink-0`}
                           onClick={(e) => {
@@ -140,7 +155,7 @@ export default function DashboardPage() {
                             </svg>
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className={`${task.status === 'Completed' ? 'text-secondary/30 line-through' : 'text-white'} font-black text-[0.9rem] md:text-[0.95rem] leading-tight mb-1 break-words`}>{task.title}</div>
                           <div className="flex items-center gap-2">
                             {task.startTime && <div className="text-[0.6rem] md:text-[0.65rem] text-secondary/40 font-black uppercase tracking-widest leading-none">⏰ {task.startTime}</div>}
@@ -168,15 +183,15 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col gap-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:gap-10 sm:items-start">
-                  <div className="flex justify-between items-center sm:flex-col sm:items-start gap-1">
+                  <div className="flex items-center justify-between gap-1 sm:flex-col sm:items-start">
                     <span className="label-sub !text-secondary/20 !text-[0.65rem] md:!text-[0.6rem] uppercase tracking-[2px]">Planned</span>
                     <span className="text-white text-[1.6rem] md:text-[1.8rem] font-black tracking-tighter leading-none">{reality?.plannedTasks ?? '—'}</span>
                   </div>
-                  <div className="flex justify-between items-center sm:flex-col sm:items-start gap-1">
+                  <div className="flex items-center justify-between gap-1 sm:flex-col sm:items-start">
                     <span className="label-sub !text-[#06d6a0]/20 !text-[0.65rem] md:!text-[0.6rem] uppercase tracking-[2px]">Done</span>
                     <span className="text-[#06d6a0] text-[1.6rem] md:text-[1.8rem] font-black tracking-tighter leading-none">{reality?.completedTasks ?? '—'}</span>
                   </div>
-                  <div className="flex justify-between items-center sm:flex-col sm:items-start gap-1">
+                  <div className="flex items-center justify-between gap-1 sm:flex-col sm:items-start">
                     <span className="label-sub !text-[#ef476f]/20 !text-[0.65rem] md:!text-[0.6rem] uppercase tracking-[2px]">Missed</span>
                     <span className="text-[#ef476f] text-[1.6rem] md:text-[1.8rem] font-black tracking-tighter leading-none">{reality?.missedTasks ?? '—'}</span>
                   </div>
@@ -210,7 +225,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-8">
           {/* Invisible Spacer to align with "Today's Overview" label */}
           <div className="flex flex-col gap-4">
-            <span className="uppercase label-sub invisible select-none">Spacer</span>
+            <span className="invisible uppercase select-none label-sub">Spacer</span>
             {reality?.insights && reality.insights.length > 0 ? (
               <Card className="primary compact-card p-6 border-l-[3px] !border-l-accent bg-accent/[0.01]">
                 <span className="mb-4 uppercase label-sub">Daily Tip</span>
@@ -229,7 +244,7 @@ export default function DashboardPage() {
           </div>
 
           <Card className="primary compact-card !flex-1 p-6">
-            <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
                <span className="uppercase label-sub">Weekly Activity</span>
                <div className="flex items-baseline gap-1">
                  <span className="text-white text-[1.2rem] font-black tracking-tight">{stats?.tasksToday ?? 0}</span>

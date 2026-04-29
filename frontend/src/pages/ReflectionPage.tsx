@@ -20,7 +20,11 @@ export default function ReflectionPage() {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery<Reflection[]>({
     queryKey: ['reflections'],
-    queryFn: fetchReflections
+    queryFn: () => fetchReflections(10, 0), // Fetch only 10 initially, not 30
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   const addMutation = useMutation({
