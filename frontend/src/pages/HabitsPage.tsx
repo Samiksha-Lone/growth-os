@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchHabits, createHabit, deleteHabit, markHabitComplete, fetchGoals, createGoal, deleteGoal } from '../api/growthos';
+import { useInvalidateDashboard } from '../hooks/useInvalidateCache';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -52,11 +53,12 @@ export default function HabitsPage() {
   const [goalDraft, setGoalDraft] = useState('');
   const [goalType, setGoalType] = useState<'goal' | 'affirmation'>('goal');
   const queryClient = useQueryClient();
+  const invalidateDashboard = useInvalidateDashboard();
 
   const { data: habits = [], isLoading } = useQuery<Habit[]>({
     queryKey: ['habits'],
     queryFn: () => fetchHabits(50), // Limit to 50
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds
     gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -65,7 +67,7 @@ export default function HabitsPage() {
   const { data: goals = [], isLoading: isGoalsLoading } = useQuery<Goal[]>({
     queryKey: ['goals'],
     queryFn: fetchGoals,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds
     gcTime: 15 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -74,6 +76,7 @@ export default function HabitsPage() {
   const createMutation = useMutation({
     mutationFn: createHabit,
     onSuccess: () => {
+      invalidateDashboard();
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       setDraft('');
       toast.success('Habit added');
@@ -83,6 +86,7 @@ export default function HabitsPage() {
   const deleteHabitMutation = useMutation({
     mutationFn: deleteHabit,
     onSuccess: () => {
+      invalidateDashboard();
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       toast.success('Habit deleted');
     },
@@ -95,6 +99,7 @@ export default function HabitsPage() {
   const checkInMutation = useMutation({
     mutationFn: markHabitComplete,
     onSuccess: () => {
+      invalidateDashboard();
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       toast.success('Checked in! 🔥');
     },

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTask, fetchTasks, deleteTask, updateTask, fetchHabits } from '../api/growthos';
+import { useInvalidateDashboard } from '../hooks/useInvalidateCache';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { TaskItem } from '../components/TaskItem';
@@ -43,13 +44,14 @@ export default function PlannerPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const queryClient = useQueryClient();
+  const invalidateDashboard = useInvalidateDashboard();
   const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
   const { data, isLoading } = useQuery<Task[]>({
     queryKey: ['tasks', localDate],
     queryFn: () => fetchTasks(localDate, 30), // Limit to 30 per day
-    staleTime: 3 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds - immediate fresh data on mutations
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 min
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -57,7 +59,7 @@ export default function PlannerPage() {
   const habitsQuery = useQuery<Habit[]>({
     queryKey: ['habits'],
     queryFn: () => fetchHabits(20), // Limit to 20
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds
     gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -76,9 +78,8 @@ export default function PlannerPage() {
   const addTaskMutation = useMutation({
     mutationFn: createTask,
     onSuccess: () => {
+      invalidateDashboard();
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] });
       setDraft('');
       toast.success('Task saved');
     }
@@ -87,18 +88,16 @@ export default function PlannerPage() {
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
     onSuccess: () => {
+      invalidateDashboard();
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] });
     }
   });
 
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTask,
     onSuccess: () => {
+      invalidateDashboard();
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics', 'stats'] });
     }
   });
 

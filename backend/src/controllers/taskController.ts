@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { TaskService } from '../services/taskService';
+import { invalidateDashboardCache } from '../utils/cache';
 import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
 
@@ -37,6 +38,9 @@ export class TaskController {
       const taskData = { ...value, userId: req.user?._id };
       const task = await TaskService.createTask(taskData);
 
+      // Invalidate dashboard cache when task is created
+      invalidateDashboardCache(req.user?._id);
+
       res.status(201).json({ message: 'Task created successfully', task });
     } catch (error: any) {
       next(error);
@@ -73,6 +77,9 @@ export class TaskController {
         return;
       }
 
+      // Invalidate dashboard cache when task is updated
+      invalidateDashboardCache(req.user?._id);
+
       res.json({ message: 'Task updated successfully', task });
     } catch (error: any) {
       next(error);
@@ -87,6 +94,9 @@ export class TaskController {
         res.status(404).json({ message: 'Task not found' });
         return;
       }
+
+      // Invalidate dashboard cache when task is deleted
+      invalidateDashboardCache(req.user?._id);
 
       res.json({ message: 'Task deleted successfully' });
     } catch (error: any) {

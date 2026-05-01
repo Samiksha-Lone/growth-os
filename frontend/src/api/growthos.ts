@@ -3,27 +3,16 @@ import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, Realit
 
 export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
   const dateStr = date || new Date().toLocaleDateString('en-CA');
-  const [tasks, habits, focus] = await Promise.all([
-    // Fetch only 50 tasks for the dashboard
-    api.get('/tasks', { params: { date: dateStr, limit: 50, skip: 0 } }),
-    // Fetch only 20 habits for the dashboard
-    api.get('/habits', { params: { limit: 20, skip: 0 } }),
-    api.get('/pomodoro/total-focus-time', { params: { startDate: dateStr, endDate: dateStr } }),
-  ]);
-
-  const tasksData = tasks.data.tasks || [];
-  const habitsData = habits.data.habits || [];
-
-  const completedTasks = tasksData.filter((t: Task) => t.status === 'Completed').length;
-  const completedHabits = habitsData.filter((h: Habit) => h.completedDates?.some(d => d.startsWith(dateStr))).length;
-
+  // Use the optimized dashboard endpoint that returns all stats in one call
+  const response = await api.get('/dashboard/stats', { params: { date: dateStr } });
+  
   return {
-    tasksToday: completedTasks,
-    tasksTotal: tasksData.length,
-    habitsDone: completedHabits,
-    habitsTotal: habitsData.length,
-    focusMinutes: focus.data.totalFocusTime || 0,
-    score: Math.min(100, Math.round((completedTasks * 15) + (completedHabits * 5))),
+    tasksToday: response.data.tasksToday,
+    tasksTotal: response.data.tasksTotal,
+    habitsDone: response.data.habitsDone,
+    habitsTotal: response.data.habitsTotal,
+    focusMinutes: response.data.focusMinutes,
+    score: response.data.score,
   };
 }
 

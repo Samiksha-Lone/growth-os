@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { HabitService } from '../services/habitService';
+import { invalidateDashboardCache } from '../utils/cache';
 import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
 
@@ -19,6 +20,9 @@ export class HabitController {
       const habitData = { ...req.body, userId: req.user?._id };
       const habit = await HabitService.createHabit(habitData);
 
+      // Invalidate dashboard cache when habit is created
+      invalidateDashboardCache(req.user?._id);
+
       res.status(201).json({ message: 'Habit created successfully', habit });
     } catch (error: any) {
       next(error);
@@ -34,6 +38,9 @@ export class HabitController {
         res.status(404).json({ message: 'Habit not found' });
         return;
       }
+
+      // Invalidate dashboard cache when habit is marked complete
+      invalidateDashboardCache(req.user?._id);
 
       res.json({ message: 'Habit marked as complete', habit });
     } catch (error: any) {
@@ -77,6 +84,9 @@ export class HabitController {
         res.status(404).json({ message: 'Habit not found' });
         return;
       }
+
+      // Invalidate dashboard cache when habit is deleted
+      invalidateDashboardCache(req.user?._id);
 
       res.json({ message: 'Habit deleted successfully' });
     } catch (error: any) {

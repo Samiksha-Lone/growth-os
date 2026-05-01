@@ -84,6 +84,7 @@ export interface DashboardStats {
   habitsTotal: number;
   focusMinutes: number;
   score: number;
+  weeklyTrend?: Array<{ day: string; value: number }>;
 }
 
 export interface UserProfile {

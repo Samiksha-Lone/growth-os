@@ -17,6 +17,7 @@ import analyticsRoutes from './routes/analytics';
 import insightsRoutes from './routes/insights';
 import realityCheckRoutes from './routes/realityCheck';
 import pomodoroRoutes from './routes/pomodoro';
+import dashboardRoutes from './routes/dashboard';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -80,6 +81,7 @@ app.use('/uploads', (req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/reflections', reflectionRoutes);
 app.use('/api/habits', habitRoutes);

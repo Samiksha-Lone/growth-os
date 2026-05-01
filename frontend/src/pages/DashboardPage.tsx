@@ -6,6 +6,7 @@ import { fetchDashboardStats, fetchTasks, fetchRealitySummary, fetchWeeklyChartD
 import { Skeleton } from '../components/ui/Skeleton';
 import { TaskItem } from '../components/TaskItem';
 import { useAuth } from '../hooks/useAuth';
+import { useInvalidateDashboard } from '../hooks/useInvalidateCache';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import type { DashboardStats, RealitySummary, Task } from '../lib/types';
 
@@ -21,14 +22,15 @@ export default function DashboardPage() {
   const { userName } = useAuth();
   const greeting = useMemo(() => getGreeting(userName), [userName]);
   const queryClient = useQueryClient();
+  const invalidateDashboard = useInvalidateDashboard();
 
   const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
 
   const statsQuery = useQuery<DashboardStats>({ 
     queryKey: ['dashboard', 'stats', localDate], 
     queryFn: () => fetchDashboardStats(localDate),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds - shows fresh data quickly when mutations occur
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 min
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -54,6 +56,7 @@ export default function DashboardPage() {
     staleTime: 30 * 60 * 1000, // 30 minutes for weekly data
     gcTime: 60 * 60 * 1000,
     retry: 1,
+    enabled: false, // Disabled - now included in dashboard stats
   });
 
   const todayTasks = useMemo(() => {
@@ -63,14 +66,16 @@ export default function DashboardPage() {
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
     onSuccess: () => {
+      // Invalidate dashboard stats immediately - backend cleared cache already
+      invalidateDashboard();
+      // Also refetch today's tasks
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     }
   });
 
   const stats = statsQuery.data;
   const reality = realityQuery.data;
-  const weeklyData = weeklyQuery.data || [];
+  const weeklyData = stats?.weeklyTrend || [];
 
   return (
     <div className="page-stack">
@@ -252,7 +257,7 @@ export default function DashboardPage() {
                </div>
             </div>
             <div className="h-[200px] w-full mt-auto">
-              {weeklyQuery.isLoading ? (
+              {statsQuery.isLoading ? (
                 <div className="flex items-end justify-around h-full pb-5">
                   {Array.from({ length: 7 }).map((_, i) => (
                     <Skeleton key={i} height={`${Math.random() * 100 + 50}px`} width="24px" />

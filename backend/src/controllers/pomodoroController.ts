@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { PomodoroService } from '../services/pomodoroService';
+import { invalidateDashboardCache } from '../utils/cache';
 import Joi from 'joi';
 import { parseLocalDate, buildLocalDateRange } from '../utils/dateUtils';
 
@@ -19,6 +20,9 @@ export class PomodoroController {
 
       const sessionData = { ...req.body, userId: req.user._id };
       const session = await PomodoroService.createSession(sessionData);
+
+      // Invalidate dashboard cache when pomodoro session is created
+      invalidateDashboardCache(req.user._id);
 
       res.status(201).json({ message: 'Pomodoro session created successfully', session });
     } catch (error: any) {
