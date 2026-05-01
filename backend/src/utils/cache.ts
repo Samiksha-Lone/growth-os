@@ -101,10 +101,16 @@ export function invalidateUserCache(userId: string): void {
  * Invalidate specific cache entry
  */
 export function invalidateDashboardCache(userId: string): void {
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1)
-    .toString()
-    .padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  const key = `dashboard:stats:${userId}:${dateStr}`;
-  appCache.delete(key);
+  const prefix = `dashboard:stats:${userId}`;
+  const keysToDelete: string[] = [];
+
+  // Iterate through all cache keys to find matches for this user's dashboard stats
+  for (const [key] of appCache.cache.entries()) {
+    if (key.startsWith(prefix)) {
+      keysToDelete.push(key);
+    }
+  }
+
+  // Delete all matching keys
+  keysToDelete.forEach(key => appCache.delete(key));
 }

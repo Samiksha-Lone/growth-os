@@ -24,20 +24,26 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const invalidateDashboard = useInvalidateDashboard();
 
-  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const localDate = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   const statsQuery = useQuery<DashboardStats>({ 
     queryKey: ['dashboard', 'stats', localDate], 
     queryFn: () => fetchDashboardStats(localDate),
-    staleTime: 30 * 1000, // 30 seconds - shows fresh data quickly when mutations occur
+    staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 min
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const tasksQuery = useQuery<Task[]>({ 
-    queryKey: ['tasks'], 
-    queryFn: () => fetchTasks(undefined, 20), // Limit to 20 initially
-    staleTime: 3 * 60 * 1000,
+    queryKey: ['tasks', localDate], 
+    queryFn: () => fetchTasks(localDate, 20), // Specifically fetch today's tasks
+    staleTime: 0,
     gcTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -45,23 +51,16 @@ export default function DashboardPage() {
   const realityQuery = useQuery<RealitySummary>({ 
     queryKey: ['reality', localDate], 
     queryFn: () => fetchRealitySummary(localDate),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
-  const weeklyQuery = useQuery({ 
-    queryKey: ['analytics', 'weekly-trend'], 
-    queryFn: () => fetchWeeklyChartData(),
-    staleTime: 30 * 60 * 1000, // 30 minutes for weekly data
-    gcTime: 60 * 60 * 1000,
-    retry: 1,
-    enabled: false, // Disabled - now included in dashboard stats
-  });
+
 
   const todayTasks = useMemo(() => {
-    return tasksQuery.data?.filter(t => t.date?.startsWith(localDate)).slice(0, 5) ?? [];
-  }, [tasksQuery.data, localDate]);
+    return tasksQuery.data?.slice(0, 5) ?? [];
+  }, [tasksQuery.data]);
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
@@ -69,7 +68,8 @@ export default function DashboardPage() {
       // Invalidate dashboard stats immediately - backend cleared cache already
       invalidateDashboard();
       // Also refetch today's tasks
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      tasksQuery.refetch();
+      realityQuery.refetch();
     }
   });
 
@@ -80,9 +80,15 @@ export default function DashboardPage() {
   return (
     <div className="page-stack">
       {/* Greeting Section */}
-      <div className="mb-2 stack-gap-md">
-        <h1 className="title-main">{greeting.text}</h1>
-        <p className="title-sub !text-secondary/60 italic">{greeting.sub}</p>
+      <div className="mb-2 flex justify-between items-end">
+        <div className="stack-gap-md">
+          <h1 className="title-main">{greeting.text}</h1>
+          <p className="title-sub !text-secondary/60 italic">{greeting.sub}</p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-accent/5 border border-accent/10 rounded-full mb-1">
+          <div className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"></div>
+          <span className="text-[0.6rem] font-black text-accent uppercase tracking-widest">Live Sync</span>
+        </div>
       </div>
 
       {/* KPI Row */}

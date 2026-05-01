@@ -14,13 +14,10 @@ export function useDashboardCacheKey(): string {
  */
 export function useInvalidateDashboard() {
   const queryClient = useQueryClient();
-  const cacheKey = useDashboardCacheKey();
 
   return () => {
-    // Invalidate dashboard stats for today
-    queryClient.invalidateQueries({ 
-      queryKey: ['dashboard', 'stats', cacheKey] 
-    });
+    // Force a complete reset of all queries to ensure 100% fresh data from the server
+    queryClient.resetQueries();
   };
 }
 
@@ -33,6 +30,29 @@ export function useInvalidateAll() {
 
   return () => {
     // Invalidate all queries (dashboard, tasks, habits, analytics, etc.)
+    // This will trigger immediate refetch due to staleTime: 0
     queryClient.invalidateQueries();
+  };
+}
+
+/**
+ * Hook to invalidate and refetch tasks
+ */
+export function useInvalidateTasks() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  };
+}
+
+/**
+ * Hook to invalidate and refetch habits
+ */
+export function useInvalidateHabits() {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['habits'] });
   };
 }

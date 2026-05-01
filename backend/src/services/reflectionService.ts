@@ -1,4 +1,5 @@
 import Reflection, { IReflection } from '../models/Reflection';
+import { buildDateRange } from '../utils/dateHelpers';
 
 export class ReflectionService {
   static async createReflection(reflectionData: Partial<IReflection>): Promise<IReflection> {
@@ -8,11 +9,12 @@ export class ReflectionService {
 
   static async getReflectionByDate(userId: string, date: string): Promise<IReflection | null> {
     const queryDate = new Date(date);
+    const { startOfDay, endOfDay } = buildDateRange(queryDate);
     return Reflection.findOne({
       userId,
       date: {
-        $gte: new Date(queryDate.getFullYear(), queryDate.getMonth(), queryDate.getDate()),
-        $lt: new Date(queryDate.getFullYear(), queryDate.getMonth(), queryDate.getDate() + 1),
+        $gte: startOfDay,
+        $lt: endOfDay,
       },
     });
   }

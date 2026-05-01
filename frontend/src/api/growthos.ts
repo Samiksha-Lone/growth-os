@@ -13,6 +13,7 @@ export async function fetchDashboardStats(date?: string): Promise<DashboardStats
     habitsTotal: response.data.habitsTotal,
     focusMinutes: response.data.focusMinutes,
     score: response.data.score,
+    weeklyTrend: response.data.weeklyTrend,
   };
 }
 

@@ -45,12 +45,18 @@ export default function PlannerPage() {
 
   const queryClient = useQueryClient();
   const invalidateDashboard = useInvalidateDashboard();
-  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const localDate = useMemo(() => formatDate(new Date()), []);
 
-  const { data, isLoading } = useQuery<Task[]>({
+  const { data, isLoading, refetch } = useQuery<Task[]>({
     queryKey: ['tasks', localDate],
     queryFn: () => fetchTasks(localDate, 30), // Limit to 30 per day
-    staleTime: 30 * 1000, // 30 seconds - immediate fresh data on mutations
+    staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 min
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -59,7 +65,7 @@ export default function PlannerPage() {
   const habitsQuery = useQuery<Habit[]>({
     queryKey: ['habits'],
     queryFn: () => fetchHabits(20), // Limit to 20
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -73,13 +79,14 @@ export default function PlannerPage() {
   }, [data]);
 
   const topPriorities = useMemo(() => data?.filter(t => t.priority === 'High' && t.status !== 'Completed').slice(0, 3) ?? [], [data]);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDate;
 
   const addTaskMutation = useMutation({
     mutationFn: createTask,
     onSuccess: () => {
       invalidateDashboard();
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Immediately refetch tasks after creating new task
+      refetch();
       setDraft('');
       toast.success('Task saved');
     }
@@ -89,7 +96,8 @@ export default function PlannerPage() {
     mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
     onSuccess: () => {
       invalidateDashboard();
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Immediately refetch tasks after updating
+      refetch();
     }
   });
 
@@ -97,7 +105,8 @@ export default function PlannerPage() {
     mutationFn: deleteTask,
     onSuccess: () => {
       invalidateDashboard();
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      // Immediately refetch tasks after deleting
+      refetch();
     }
   });
 

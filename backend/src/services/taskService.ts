@@ -1,14 +1,6 @@
 import Task, { ITask } from '../models/Task';
 import { parseLocalDate } from '../utils/dateUtils';
 
-function pad(value: number): string {
-  return value.toString().padStart(2, '0');
-}
-
-function localDateKey(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 export class TaskService {
   static async createTask(taskData: Partial<ITask>): Promise<ITask> {
     const normalizedDate = parseLocalDate(taskData.date);

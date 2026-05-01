@@ -104,7 +104,7 @@ export default function SettingsPage() {
   return (
     <div className="page-stack">
       <div className="flex items-center justify-between">
-        <h1 className="title-main">Settings</h1>
+        <h1 className="title-main">My Profile</h1>
       </div>
 
       <div className="split-layout">
@@ -169,7 +169,7 @@ export default function SettingsPage() {
 
                 <div className="flex justify-end mt-6">
                   <Button disabled={saving} type="submit" className="!bg-accent !text-white !border-none !py-3.5 !px-12 !font-black !text-[0.8rem] !rounded-xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest">
-                    {saving ? 'SAVING...' : 'SAVE SETTINGS'}
+                    {saving ? 'SAVING...' : 'UPDATE PROFILE'}
                   </Button>
                 </div>
              </form>

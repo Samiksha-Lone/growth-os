@@ -37,6 +37,15 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
+// Disable all caching for API routes
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 // Enable compression for all responses
 app.use(compression({
   level: 6, // Default compression level (0-9, higher = slower but better compression)

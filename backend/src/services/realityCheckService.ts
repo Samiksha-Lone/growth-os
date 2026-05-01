@@ -1,14 +1,9 @@
 import Task from '../models/Task';
+import { buildDateRange, calculateCompletionRate } from '../utils/dateHelpers';
 
 export class RealityCheckService {
   static async getRealityCheck(userId: string, date: Date): Promise<any> {
-    // Build start/end of day using local date components to avoid UTC offset issues
-    const y = date.getFullYear();
-    const m = date.getMonth();
-    const d = date.getDate();
-
-    const startOfDay = new Date(y, m, d, 0, 0, 0, 0);
-    const endOfDay = new Date(y, m, d + 1, 0, 0, 0, 0);
+    const { startOfDay, endOfDay } = buildDateRange(date);
 
     const tasks = await Task.find({
       userId,
@@ -19,7 +14,7 @@ export class RealityCheckService {
     const completedTasks = tasks.filter(task => task.status === 'Completed').length;
     const missedTasks = tasks.filter(task => task.status === 'Missed').length;
 
-    const completionPercentage = plannedTasks > 0 ? Math.round((completedTasks / plannedTasks) * 100) : 0;
+    const completionPercentage = calculateCompletionRate(completedTasks, plannedTasks);
 
     let overPlanningIndicator = false;
     if (plannedTasks > 10) {

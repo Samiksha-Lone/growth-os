@@ -1,22 +1,5 @@
 import Habit, { IHabit } from '../models/Habit';
-
-function pad(value: number): string {
-  return value.toString().padStart(2, '0');
-}
-
-function localDateKey(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function dateFromLocalDateKey(key: string): Date | null {
-  const parts = key.split('-');
-  if (parts.length !== 3) return null;
-  const year = Number(parts[0]);
-  const month = Number(parts[1]) - 1;
-  const day = Number(parts[2]);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
-  return new Date(year, month, day, 0, 0, 0, 0);
-}
+import { localDateKey, dateFromLocalDateKey, normalizeDateValue } from '../utils/dateHelpers';
 
 export class HabitService {
   static async createHabit(habitData: Partial<IHabit>): Promise<IHabit> {
@@ -25,23 +8,7 @@ export class HabitService {
   }
 
   private static normalizeDateValue(value: any): Date | null {
-    if (!value) return null;
-
-    if (value instanceof Date && !isNaN(value.getTime())) {
-      return new Date(value.getFullYear(), value.getMonth(), value.getDate(), 0, 0, 0, 0);
-    }
-
-    if (typeof value === 'string') {
-      const localDate = dateFromLocalDateKey(value);
-      if (localDate) return localDate;
-
-      const parsed = new Date(value);
-      if (!isNaN(parsed.getTime())) {
-        return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0);
-      }
-    }
-
-    return null;
+    return normalizeDateValue(value);
   }
 
   static async markHabitComplete(habitId: string, userId: string, date: Date): Promise<IHabit | null> {
@@ -50,10 +17,10 @@ export class HabitService {
       if (!habit) return null;
 
       habit.completedDates = (habit.completedDates || [])
-        .map((d) => this.normalizeDateValue(d))
+        .map((d) => normalizeDateValue(d))
         .filter((d): d is Date => d !== null);
 
-      const normalizedDate = this.normalizeDateValue(date) ?? new Date();
+      const normalizedDate = normalizeDateValue(date) ?? new Date();
       const dateKey = localDateKey(normalizedDate);
 
       const existingKeys = habit.completedDates.map((d) => localDateKey(d));
@@ -82,7 +49,7 @@ export class HabitService {
     });
 
     const normalizedDates = habit.completedDates
-      .map((d) => this.normalizeDateValue(d))
+      .map((d) => normalizeDateValue(d))
       .filter((d): d is Date => d !== null)
       .map((d) => localDateKey(d));
 
@@ -117,7 +84,7 @@ export class HabitService {
 
     const dateKeys = [...new Set(
       completedDates
-        .map((d) => this.normalizeDateValue(d))
+        .map((d) => normalizeDateValue(d))
         .filter((d): d is Date => d !== null)
         .map((d) => localDateKey(d))
     )].sort().reverse();

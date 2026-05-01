@@ -1,18 +1,18 @@
 import Task from '../models/Task';
 import Habit from '../models/Habit';
 import Reflection from '../models/Reflection';
+import { buildDateRange, calculateCompletionRate } from '../utils/dateHelpers';
+import mongoose from 'mongoose';
 
 export class AnalyticsService {
   static async getDailyCompletionRate(userId: string, date: Date): Promise<number> {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 1);
+    const { startOfDay, endOfDay } = buildDateRange(date);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const result = await Task.aggregate([
       {
         $match: {
-          userId: { $eq: userId },
+          userId: userObjectId,
           date: { $gte: startOfDay, $lt: endOfDay },
         },
       },
@@ -30,8 +30,7 @@ export class AnalyticsService {
     const totalCount = result[0].total[0]?.count || 0;
     const completedCount = result[0].completed[0]?.count || 0;
 
-    if (totalCount === 0) return 0;
-    return Math.round((completedCount / totalCount) * 100);
+    return calculateCompletionRate(completedCount, totalCount);
   }
 
   static async getWeeklyCompletionTrend(userId: string): Promise<any[]> {
@@ -42,10 +41,12 @@ export class AnalyticsService {
     // Calculate date range
     const sixDaysAgo = new Date(today);
     sixDaysAgo.setDate(today.getDate() - 6);
+    
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Fetch all tasks for the week in ONE query
     const tasks = await Task.find({
-      userId,
+      userId: userObjectId,
       date: { $gte: sixDaysAgo, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
     });
 
@@ -63,7 +64,7 @@ export class AnalyticsService {
         t => t.date >= dayStart && t.date < dayEnd
       );
       const completed = dayTasks.filter(t => t.status === 'Completed').length;
-      const rate = dayTasks.length === 0 ? 0 : Math.round((completed / dayTasks.length) * 100);
+      const rate = calculateCompletionRate(completed, dayTasks.length);
 
       trend.push({
         day: shortDays[d.getDay()],
@@ -103,9 +104,7 @@ export class AnalyticsService {
     ]);
 
     const stats = result[0].stats[0] || { totalTasks: 0, completedTasks: 0 };
-    const completionRate = stats.totalTasks > 0
-      ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
-      : 0;
+    const completionRate = calculateCompletionRate(stats.completedTasks, stats.totalTasks);
 
     // Get habit stats
     const habits = await Habit.find({ userId });
@@ -151,9 +150,7 @@ export class AnalyticsService {
     ]);
 
     const stats = result[0].stats[0] || { totalTasks: 0, completedTasks: 0 };
-    const completionRate = stats.totalTasks > 0
-      ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
-      : 0;
+    const completionRate = calculateCompletionRate(stats.completedTasks, stats.totalTasks);
 
     const reflections = await Reflection.find({
       userId,

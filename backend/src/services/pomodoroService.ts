@@ -1,4 +1,5 @@
 import PomodoroSession, { IPomodoroSession } from '../models/PomodoroSession';
+import { buildDateRange } from '../utils/dateHelpers';
 
 export class PomodoroService {
   static async createSession(sessionData: Partial<IPomodoroSession>): Promise<IPomodoroSession> {
@@ -10,9 +11,7 @@ export class PomodoroService {
     const query: any = { userId };
 
     if (date) {
-      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setDate(endOfDay.getDate() + 1);
+      const { startOfDay, endOfDay } = buildDateRange(date);
       query.date = { $gte: startOfDay, $lt: endOfDay };
     }
 

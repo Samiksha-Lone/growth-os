@@ -8,13 +8,15 @@ import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 import type { Goal, Habit } from '../lib/types';
 
-function toLocalDateKey(value: string): string | null {
+function toLocalDateKey(value: string | Date): string | null {
   if (!value) return null;
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-
-  return parsed.toLocaleDateString('en-CA');
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function calcStreak(completedDates: string[]): number {
@@ -55,29 +57,36 @@ export default function HabitsPage() {
   const queryClient = useQueryClient();
   const invalidateDashboard = useInvalidateDashboard();
 
-  const { data: habits = [], isLoading } = useQuery<Habit[]>({
+  const habitsQuery = useQuery<Habit[]>({
     queryKey: ['habits'],
     queryFn: () => fetchHabits(50), // Limit to 50
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+  
+  const habits = habitsQuery.data ?? [];
+  const isLoading = habitsQuery.isLoading;
 
-  const { data: goals = [], isLoading: isGoalsLoading } = useQuery<Goal[]>({
+  const goalsQuery = useQuery<Goal[]>({
     queryKey: ['goals'],
     queryFn: fetchGoals,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 15 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+  
+  const goals = goalsQuery.data ?? [];
+  const isGoalsLoading = goalsQuery.isLoading;
 
   const createMutation = useMutation({
     mutationFn: createHabit,
     onSuccess: () => {
       invalidateDashboard();
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      // Immediately refetch habits after creating
+      habitsQuery.refetch();
       setDraft('');
       toast.success('Habit added');
     }
@@ -87,7 +96,8 @@ export default function HabitsPage() {
     mutationFn: deleteHabit,
     onSuccess: () => {
       invalidateDashboard();
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      // Immediately refetch habits after deleting
+      habitsQuery.refetch();
       toast.success('Habit deleted');
     },
     onError: (error) => {
@@ -100,7 +110,8 @@ export default function HabitsPage() {
     mutationFn: markHabitComplete,
     onSuccess: () => {
       invalidateDashboard();
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      // Immediately refetch habits after checking in
+      habitsQuery.refetch();
       toast.success('Checked in! 🔥');
     },
     onError: (error) => {
@@ -112,7 +123,8 @@ export default function HabitsPage() {
   const createGoalMutation = useMutation({
     mutationFn: createGoal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      // Immediately refetch goals after creating
+      goalsQuery.refetch();
       setGoalDraft('');
       toast.success('Goal added');
     },
@@ -125,7 +137,8 @@ export default function HabitsPage() {
   const deleteGoalMutation = useMutation({
     mutationFn: deleteGoal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      // Immediately refetch goals after deleting
+      goalsQuery.refetch();
       toast.success('Goal deleted');
     },
     onError: (error) => {
@@ -134,7 +147,7 @@ export default function HabitsPage() {
     }
   });
 
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = useMemo(() => toLocalDateKey(new Date())!, []);
 
   const goalStats = useMemo(() => ({
     total: goals.length,
