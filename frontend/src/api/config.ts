@@ -1,14 +1,17 @@
 export const SERVER_URL = (() => {
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+  const envBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE;
+  if (envBaseUrl) {
+    const normalized = envBaseUrl.replace(/\/+$/, '');
+    const baseUrl = normalized.endsWith('/api') ? normalized : `${normalized}/api`;
+    return baseUrl;
   }
   if (import.meta.env.DEV) {
-    return 'http://localhost:5000';
+    return 'http://localhost:5000/api';
   }
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:5000';
+    return 'http://localhost:5000/api';
   }
-  return ''; // Relative to frontend root
+  return '/api';
 })();
 
-export const API_BASE_URL = `${SERVER_URL}/api`;
+export const API_BASE_URL = SERVER_URL;
