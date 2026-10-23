@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRealitySummary, fetchTasks } from '../api/growthos';
+import { taskQueryKey } from '../api/queryKeys';
+import { localDateKey } from '../lib/dateUtils';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { RealitySummary, Task } from '../lib/types';
 
 export default function RealityCheckPage() {
-  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const localDate = useMemo(() => localDateKey(), []);
   const [selectedDate, setSelectedDate] = useState(localDate);
 
   const { data, isLoading } = useQuery<RealitySummary>({
@@ -14,7 +16,7 @@ export default function RealityCheckPage() {
     queryFn: () => fetchRealitySummary(selectedDate),
   });
   const tasksQuery = useQuery<Task[]>({
-    queryKey: ['tasks', selectedDate],
+    queryKey: taskQueryKey(selectedDate),
     queryFn: () => fetchTasks(selectedDate),
   });
 

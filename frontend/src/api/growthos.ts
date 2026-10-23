@@ -1,5 +1,5 @@
 import api from './axios';
-import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, RealitySummary, Task, UserProfile, PomodoroSession } from '../lib/types';
+import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, RealitySummary, Task, UserProfile } from '../lib/types';
 
 export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
   const dateStr = date || new Date().toLocaleDateString('en-CA');
@@ -11,20 +11,9 @@ export async function fetchDashboardStats(date?: string): Promise<DashboardStats
     tasksTotal: response.data.tasksTotal,
     habitsDone: response.data.habitsDone,
     habitsTotal: response.data.habitsTotal,
-    focusMinutes: response.data.focusMinutes,
     score: response.data.score,
     weeklyTrend: response.data.weeklyTrend,
   };
-}
-
-export async function fetchWeeklyChartData(): Promise<{ day: string; value: number }[]> {
-  try {
-    const response = await api.get('/analytics/weekly-trend');
-    return response.data || [];
-  } catch (error) {
-    console.error('Failed to fetch weekly trend:', error);
-    return [];
-  }
 }
 
 export async function fetchTasks(date?: string, limit: number = 20, skip: number = 0): Promise<Task[]> {
@@ -183,9 +172,4 @@ export async function uploadAvatar(file: File): Promise<UserProfile> {
     }
   });
   return response.data.user;
-}
-
-export async function savePomodoroSession(session: PomodoroSession): Promise<PomodoroSession> {
-  const response = await api.post('/pomodoro/sessions', session);
-  return response.data.session;
 }

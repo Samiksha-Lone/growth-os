@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchHabits, createHabit, deleteHabit, markHabitComplete, fetchGoals, createGoal, deleteGoal } from '../api/growthos';
+import { habitQueryKey } from '../api/queryKeys';
 import { useInvalidateDashboard } from '../hooks/useInvalidateCache';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -58,7 +59,7 @@ export default function HabitsPage() {
   const invalidateDashboard = useInvalidateDashboard();
 
   const habitsQuery = useQuery<Habit[]>({
-    queryKey: ['habits'],
+    queryKey: habitQueryKey(50),
     queryFn: () => fetchHabits(50), // Limit to 50
     staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 10 * 60 * 1000,

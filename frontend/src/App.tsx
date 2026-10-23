@@ -8,7 +8,6 @@ import HabitsPage from './pages/HabitsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import InsightsPage from './pages/InsightsPage';
 import RealityCheckPage from './pages/RealityCheckPage';
-import PomodoroPage from './pages/PomodoroPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import HistoryPage from './pages/HistoryPage';
@@ -21,7 +20,6 @@ const protectedRoutes = [
   { path: '/analytics', element: <AnalyticsPage /> },
   { path: '/insights', element: <InsightsPage /> },
   { path: '/reality-check', element: <RealityCheckPage /> },
-  { path: '/pomodoro', element: <PomodoroPage /> },
   { path: '/settings', element: <SettingsPage /> },
   { path: '/history', element: <HistoryPage /> }
 ];

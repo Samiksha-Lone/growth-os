@@ -16,20 +16,13 @@ import goalRoutes from './routes/goals';
 import analyticsRoutes from './routes/analytics';
 import insightsRoutes from './routes/insights';
 import realityCheckRoutes from './routes/realityCheck';
-import pomodoroRoutes from './routes/pomodoro';
 import dashboardRoutes from './routes/dashboard';
 import { errorHandler } from './middleware/errorHandler';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Connect to MongoDB
-connectDB();
-
-// Initialize background job scheduler
-initializeJobScheduler();
 
 // Middleware
 app.use(helmet({
@@ -98,11 +91,17 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/reality-check', realityCheckRoutes);
-app.use('/api/pomodoro', pomodoroRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async (): Promise<void> => {
+  await connectDB();
+  initializeJobScheduler();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+void startServer();

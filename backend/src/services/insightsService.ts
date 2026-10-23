@@ -3,6 +3,7 @@ import Habit from '../models/Habit';
 import Reflection from '../models/Reflection';
 import Goal from '../models/Goal';
 import Insight from '../models/Insight';
+import { normalizeMoodScore } from '../utils/reflectionMetrics';
 
 interface InsightMetrics {
   currentCompletionRate: number;
@@ -146,54 +147,60 @@ export class InsightsService {
       }
     }
 
-    // Mood Trend Analysis - More lenient thresholds for early data
-    if (currentReflections.length > 0) {
-      const moods = currentReflections.map((r: any) => r.mood || 0);
-      const avgMood = moods.reduce((a: number, b: number) => a + b, 0) / moods.length;
-      
-      if (avgMood >= 7.5) {
+    // Values above 3 come from historical records that used a 1-10 mood scale.
+    const moods = currentReflections
+      .map((reflection: any) => normalizeMoodScore(reflection.mood))
+      .filter((mood: number | null): mood is number => mood !== null);
+
+    if (moods.length >= 2) {
+      const avgMood = moods.reduce((total: number, mood: number) => total + mood, 0) / moods.length;
+
+      if (avgMood >= 2.4) {
         insights.push({
           type: 'mood',
           title: 'Great Mental State',
-          message: `Your mood average is ${avgMood.toFixed(1)}/10. You're feeling positive - great time to tackle ambitious goals!`,
+          message: `Your mood average is ${avgMood.toFixed(1)}/3. You're feeling positive - great time to tackle ambitious goals!`,
           category: 'Mood & Wellness',
           severity: 'low',
         });
-      } else if (avgMood <= 4) {
+      } else if (avgMood <= 1.7) {
         insights.push({
           type: 'mood',
           title: 'Wellness Check-in',
-          message: `Your mood average is ${avgMood.toFixed(1)}/10. Consider taking a break or reaching out to someone you trust.`,
+          message: `Your mood average is ${avgMood.toFixed(1)}/3. Consider taking a break or reaching out to someone you trust.`,
           category: 'Mood & Wellness',
           severity: 'high',
         });
-      } else if (avgMood >= 5 && avgMood < 6.5) {
+      } else if (avgMood >= 1.8 && avgMood < 2.3) {
         // Middle ground - provide supportive insight
         insights.push({
           type: 'mood',
           title: 'Building Momentum',
-          message: `Your mood is at ${avgMood.toFixed(1)}/10. Small wins today can lift your spirits higher!`,
+          message: `Your mood is at ${avgMood.toFixed(1)}/3. Small wins today can lift your spirits higher!`,
           category: 'Mood & Wellness',
           severity: 'low',
         });
       }
     }
 
-    // Productivity Pattern Analysis - Lowered threshold from 3+ to 2+
-    if (currentReflections.length >= 2) {
-      const productivityScores = currentReflections.map((r: any) => r.productivity || 0).filter((p: number) => p > 0);
-      if (productivityScores.length > 0) {
-        const avgProductivity = productivityScores.reduce((a: number, b: number) => a + b, 0) / productivityScores.length;
-        
-        if (avgProductivity >= 6.5) {
-          insights.push({
-            type: 'productivity',
-            title: 'Strong Productivity',
-            message: `You're maintaining a solid productivity average (${avgProductivity.toFixed(1)}/10). Identify what's working and maintain these habits.`,
-            category: 'Productivity',
-            severity: 'low',
-          });
-        }
+    // Productivity Pattern Analysis requires at least two valid persisted scores.
+    const productivityScores = currentReflections
+      .map((reflection: any) => reflection.productivityScore)
+      .filter((score: any): score is number =>
+        typeof score === 'number' && Number.isFinite(score) && score >= 1 && score <= 10
+      );
+
+    if (productivityScores.length >= 2) {
+      const avgProductivity = productivityScores.reduce((total: number, score: number) => total + score, 0) / productivityScores.length;
+
+      if (avgProductivity >= 6.5) {
+        insights.push({
+          type: 'productivity',
+          title: 'Strong Productivity',
+          message: `You're maintaining a solid productivity average (${avgProductivity.toFixed(1)}/10). Identify what's working and maintain these habits.`,
+          category: 'Productivity',
+          severity: 'low',
+        });
       }
     }
 
@@ -271,9 +278,9 @@ export class InsightsService {
     };
   }
 
-  static async dismissInsight(insightId: string): Promise<any> {
-    return Insight.findByIdAndUpdate(
-      insightId,
+  static async dismissInsight(insightId: string, userId: string): Promise<any> {
+    return Insight.findOneAndUpdate(
+      { _id: insightId, userId },
       {
         dismissed: true,
         dismissedAt: new Date(),

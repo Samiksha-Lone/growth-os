@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchInsights, fetchRealitySummary, fetchHabits, fetchTasks } from '../api/growthos';
+import { habitQueryKey, taskQueryKey } from '../api/queryKeys';
+import { localDateKey } from '../lib/dateUtils';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { AdvancedAnalytics, RealitySummary, Habit, Task } from '../lib/types';
@@ -22,7 +24,7 @@ function calcStreak(completedDates: string[]): number {
 
 export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState<'Insights' | 'Goals'>('Insights');
-  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const localDate = useMemo(() => localDateKey(), []);
 
   const insightsQuery = useQuery<AdvancedAnalytics>({ 
     queryKey: ['insights'], 
@@ -42,7 +44,7 @@ export default function InsightsPage() {
     gcTime: 10 * 60 * 1000,
   });
   const habitsQuery = useQuery<Habit[]>({ 
-    queryKey: ['habits'], 
+    queryKey: habitQueryKey(20),
     queryFn: () => fetchHabits(20), // Limit to 20 habits initially
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -50,7 +52,7 @@ export default function InsightsPage() {
     gcTime: 10 * 60 * 1000,
   });
   const tasksQuery = useQuery<Task[]>({ 
-    queryKey: ['tasks'], 
+    queryKey: taskQueryKey(undefined, 20),
     queryFn: () => fetchTasks(undefined, 20), // Limit to 20 tasks initially
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

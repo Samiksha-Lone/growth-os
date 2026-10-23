@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
+import { AccountService } from '../services/accountService';
 import Joi from 'joi';
 import User from '../models/User';
 
@@ -190,11 +191,7 @@ export class AuthController {
         return;
       }
 
-      await User.findByIdAndDelete(req.user._id);
-      
-      // Note: In a production app, we would also delete the user's tasks, habits, etc.
-      // For now, removing the user is the primary requirement.
-
+      await AccountService.deleteAccount(String(req.user._id));
       res.json({ message: 'Account deleted successfully' });
     } catch (error: any) {
       next(error);

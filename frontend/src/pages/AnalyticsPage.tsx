@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardStats, fetchHabits, fetchRealitySummary, fetchWeeklyChartData, fetchGoals } from '../api/growthos';
+import { fetchDashboardStats, fetchHabits, fetchRealitySummary, fetchGoals } from '../api/growthos';
+import { dashboardStatsQueryKey, habitQueryKey } from '../api/queryKeys';
+import { localDateKey } from '../lib/dateUtils';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 import {
@@ -40,10 +42,10 @@ function buildHeatmap(habits: Habit[]): boolean[] {
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<'Overview' | 'Trends'>('Overview');
 
-  const localDate = useMemo(() => new Date().toLocaleDateString('en-CA'), []);
+  const localDate = useMemo(() => localDateKey(), []);
 
   const statsQuery = useQuery<DashboardStats>({ 
-    queryKey: ['analytics', 'stats', localDate], 
+    queryKey: dashboardStatsQueryKey(localDate),
     queryFn: () => fetchDashboardStats(localDate),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -51,7 +53,7 @@ export default function AnalyticsPage() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const habitsQuery = useQuery<Habit[]>({ 
-    queryKey: ['habits'], 
+    queryKey: habitQueryKey(30),
     queryFn: () => fetchHabits(30), // Limit to 30
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -74,21 +76,13 @@ export default function AnalyticsPage() {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
-  const weeklyQuery = useQuery({ 
-    queryKey: ['analytics', 'weekly-trend'], 
-    queryFn: () => fetchWeeklyChartData(),
-    staleTime: 30 * 60 * 1000, // Weekly data caches longer
-    gcTime: 60 * 60 * 1000,
-    retry: 1,
-  });
-
   const habits = habitsQuery.data ?? [];
   const goals = goalsQuery.data ?? [];
   const stats = statsQuery.data;
   const reality = realityQuery.data;
 
   const heatmap = useMemo(() => buildHeatmap(habits), [habits]);
-  const weekTrend = weeklyQuery.data || [];
+  const weekTrend = stats?.weeklyTrend ?? [];
 
   const longestStreak = useMemo(() => {
     return habits.reduce((max, h) => Math.max(max, calcStreak(h.completedDates ?? [])), 0);
@@ -201,20 +195,6 @@ export default function AnalyticsPage() {
               )}
             </Card>
 
-            {/* Focus Time */}
-            <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Focus Time</span>
-              {statsQuery.isLoading ? <Skeleton height="50px" /> : (
-                <div className="stack-gap-sm">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{Math.floor((stats?.focusMinutes ?? 0) / 60)}</span>
-                    <span className="label-sub uppercase !text-[0.75rem] text-secondary/60">H {(stats?.focusMinutes ?? 0) % 60}M</span>
-                  </div>
-                  <div className="text-[0.65rem] text-secondary/30 font-black uppercase tracking-widest">Time in deep focus</div>
-                </div>
-              )}
-            </Card>
-
             {/* Future Vision */}
             <Card className="primary compact-card">
               <span className="mb-4 uppercase label-sub">Future Vision</span>
@@ -268,7 +248,22 @@ export default function AnalyticsPage() {
                 <span className="text-[0.65rem] text-secondary/40 font-black uppercase tracking-widest">Tasks completed</span>
               </div>
               <div className="h-[240px] mt-4">
-                {weeklyQuery.isLoading ? <Skeleton height="240px" /> : (
+                {statsQuery.isLoading ? <Skeleton height="240px" /> : statsQuery.isError ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                    <p className="text-sm text-red-300">Weekly trend couldn't be loaded.</p>
+                    <button
+                      type="button"
+                      onClick={() => statsQuery.refetch()}
+                      className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : weekTrend.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-center text-sm text-secondary/50">
+                    Trends will appear after activity is recorded.
+                  </div>
+                ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={weekTrend}>
                       <defs>

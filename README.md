@@ -8,7 +8,7 @@
 
 ## Overview
 
-GrowthOS is a comprehensive personal productivity and growth tracking platform that empowers users to build better habits, manage tasks effectively, and gain insights from their daily progress patterns. It combines modern productivity techniques like the Pomodoro method with comprehensive analytics to help users understand their patterns and optimize their performance.
+GrowthOS is a comprehensive personal productivity and growth tracking platform that empowers users to build better habits, manage tasks effectively, and gain insights from their daily progress patterns. It combines task management, habit tracking, reflections, and analytics to help users understand their patterns and optimize their performance.
 
 ## Problem Statement
 
@@ -28,7 +28,6 @@ GrowthOS provides a centralized platform that consolidates all aspects of person
 - 📝 **Daily Reflections** — Log mood, productivity scores, and personal learnings
 - 💡 **Data-Driven Insights** — Pattern analysis with task trends, habit streaks, mood analysis, and recommendations
 - 📊 **Advanced Analytics** — Statistics on completion rates, task trends, habit consistency, and productivity metrics
-- ⏱️ **Pomodoro Timer** — Focus sessions with automatic tracking and analytics
 - 🎯 **Goals & Affirmations** — Set and track personal goals and affirmations
 - 🧠 **Reality Checks** — Daily analysis of planned vs. completed tasks
 - 📈 **Dashboard** — Real-time overview of progress, habits, and performance

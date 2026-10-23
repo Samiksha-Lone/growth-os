@@ -8,7 +8,7 @@ const createReflectionSchema = Joi.object({
   goodThings: Joi.array().items(Joi.string()).required(),
   badThings: Joi.array().items(Joi.string()).required(),
   learnings: Joi.array().items(Joi.string()).required(),
-  mood: Joi.number().min(1).max(10).required(),
+  mood: Joi.number().min(1).max(3).required(),
   productivityScore: Joi.number().min(1).max(10).required(),
 });
 
@@ -16,7 +16,7 @@ const updateReflectionSchema = Joi.object({
   goodThings: Joi.array().items(Joi.string()),
   badThings: Joi.array().items(Joi.string()),
   learnings: Joi.array().items(Joi.string()),
-  mood: Joi.number().min(1).max(10),
+  mood: Joi.number().min(1).max(3),
   productivityScore: Joi.number().min(1).max(10),
 });
 

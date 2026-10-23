@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTasks } from '../api/growthos';
+import { taskQueryKey } from '../api/queryKeys';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { Task } from '../lib/types';
 
 export default function HistoryPage() {
   const { data, isLoading } = useQuery<Task[]>({
-    queryKey: ['tasks', 'all'],
+    queryKey: taskQueryKey(),
     queryFn: () => fetchTasks()
   });
 

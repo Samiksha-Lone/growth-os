@@ -1,40 +1,24 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createTask, fetchTasks, deleteTask, updateTask, fetchHabits } from '../api/growthos';
-import { useInvalidateDashboard } from '../hooks/useInvalidateCache';
+import { createTask, fetchTasks, deleteTask, updateTask } from '../api/growthos';
+import { dashboardStatsQueryKey, taskQueryKey } from '../api/queryKeys';
+import { localDateKey } from '../lib/dateUtils';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { TaskItem } from '../components/TaskItem';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/ui/Modal';
-import type { Task, Habit } from '../lib/types';
+import type { Task } from '../lib/types';
 
 const statusOrder = ['Pending', 'In Progress', 'Completed', 'Missed'] as const;
 
-function calcStreak(completedDates: string[]): number {
-  if (!completedDates?.length) return 0;
-  const sorted = [...completedDates].map(d => d.split('T')[0]).sort().reverse();
-  const unique = [...new Set(sorted)];
-  let streak = 0;
-  let current = new Date();
-  current.setHours(0, 0, 0, 0);
-
-  for (const ds of unique) {
-    const [y, m, dstr] = ds.split('-');
-    const d = new Date(Number(y), Number(m) - 1, Number(dstr));
-    d.setHours(0, 0, 0, 0);
-    const diff = Math.round((current.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-    if (diff <= 1) {
-      streak++;
-      current = d;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-}
+const queueContent: Record<(typeof statusOrder)[number], { heading: string; empty: string }> = {
+  Pending: { heading: 'Pending Tasks', empty: 'No pending tasks found.' },
+  'In Progress': { heading: 'In Progress Tasks', empty: 'No tasks in progress.' },
+  Completed: { heading: 'Completed Tasks', empty: 'No completed tasks found.' },
+  Missed: { heading: 'Missed Tasks', empty: 'No missed tasks found.' },
+};
 
 export default function PlannerPage() {
   const [activeTab, setActiveTab] = useState<(typeof statusOrder)[number]>('Pending');
@@ -44,17 +28,10 @@ export default function PlannerPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const queryClient = useQueryClient();
-  const invalidateDashboard = useInvalidateDashboard();
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-  const localDate = useMemo(() => formatDate(new Date()), []);
+  const localDate = useMemo(() => localDateKey(), []);
 
-  const { data, isLoading, refetch } = useQuery<Task[]>({
-    queryKey: ['tasks', localDate],
+  const { data, isLoading, isError, refetch } = useQuery<Task[]>({
+    queryKey: taskQueryKey(localDate, 30),
     queryFn: () => fetchTasks(localDate, 30), // Limit to 30 per day
     staleTime: 0, // Always consider stale - refetch on invalidation
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 min
@@ -62,14 +39,13 @@ export default function PlannerPage() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  const habitsQuery = useQuery<Habit[]>({
-    queryKey: ['habits'],
-    queryFn: () => fetchHabits(20), // Limit to 20
-    staleTime: 0, // Always consider stale - refetch on invalidation
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
+  const invalidateTaskViews = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+      queryClient.invalidateQueries({ queryKey: dashboardStatsQueryKey(localDate) }),
+      queryClient.invalidateQueries({ queryKey: ['reality', localDate] }),
+    ]);
+  };
 
   const filteredTasks = useMemo(() => data?.filter(t => t.status === activeTab) ?? [], [data, activeTab]);
   const tabCounts = useMemo(() => {
@@ -79,74 +55,53 @@ export default function PlannerPage() {
   }, [data]);
 
   const topPriorities = useMemo(() => data?.filter(t => t.priority === 'High' && t.status !== 'Completed').slice(0, 3) ?? [], [data]);
-  const today = localDate;
 
   const addTaskMutation = useMutation({
     mutationFn: createTask,
-    onSuccess: () => {
-      invalidateDashboard();
-      // Immediately refetch tasks after creating new task
-      refetch();
+    onSuccess: async () => {
+      await invalidateTaskViews();
       setDraft('');
       toast.success('Task saved');
-    }
+    },
+    onError: () => toast.error("Couldn't save the task. Please try again."),
   });
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string, updates: Partial<Task> }) => updateTask(id, updates),
-    onSuccess: () => {
-      invalidateDashboard();
-      // Immediately refetch tasks after updating
-      refetch();
-    }
+    onSuccess: invalidateTaskViews,
+    onError: () => toast.error("Couldn't update the task. Please try again."),
   });
 
   const deleteTaskMutation = useMutation({
     mutationFn: deleteTask,
-    onSuccess: () => {
-      invalidateDashboard();
-      // Immediately refetch tasks after deleting
-      refetch();
-    }
+    onSuccess: invalidateTaskViews,
+    onError: () => toast.error("Couldn't delete the task. Please try again."),
   });
 
   return (
     <div className="page-stack">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex min-h-[34px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="title-main">My Planner</h1>
-        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border overflow-x-auto">
-          {statusOrder.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 md:flex-none whitespace-nowrap px-4 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
       </div>
 
-      <div className="split-layout">
-        {/* Main Column */}
-        <div className="stack-gap-lg">
-
-          {/* Add Task Form */}
-          <Card className="p-6 primary">
-            <div className="stack-gap-md">
+      <div className="split-layout !gap-5 md:!gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+        <div className="min-w-0 flex flex-col gap-5 md:gap-6">
+          <Card className="primary p-4 md:p-6">
+            <div className="flex flex-col gap-4 md:gap-5">
               <input
-                className="field-input !h-12 !text-[1rem] !font-semibold !px-5"
+                className="field-input !h-12 !px-4 !text-[1rem] !font-semibold md:!px-5"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="What do you want to achieve today?"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && draft.trim()) {
+                  if (e.key === 'Enter' && draft.trim() && !addTaskMutation.isPending) {
+                    e.preventDefault();
                     addTaskMutation.mutate({ title: draft, category, priority, status: 'Pending' });
                   }
                 }}
               />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div className="flex flex-col gap-1.5">
                   <label className="label-sub !mb-0 ml-1">Category</label>
                   <select
@@ -173,50 +128,71 @@ export default function PlannerPage() {
                     <option value="Low">Low Priority</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="flex justify-end mt-2">
                 <Button
+                  type="button"
+                  disabled={!draft.trim() || addTaskMutation.isPending}
                   onClick={() => {
-                    if (draft.trim()) {
+                    if (draft.trim() && !addTaskMutation.isPending) {
                       addTaskMutation.mutate({ title: draft, category, priority, status: 'Pending' });
                     }
                   }}
-                  className="!px-8 !py-3 !bg-[#3a86ff] !text-white !font-black !text-[0.85rem] !rounded-xl hover:scale-105 active:scale-95 transition-all shadow-xl"
+                  className="w-full !rounded-xl !bg-[#3a86ff] !px-6 !py-3 !text-[0.8rem] !font-black !text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2 lg:col-span-1 lg:w-auto"
                 >
-                  ADD TASK
+                  {addTaskMutation.isPending ? 'SAVING...' : 'ADD TASK'}
                 </Button>
               </div>
             </div>
           </Card>
 
-          {/* Task List */}
           <Card className="primary !p-0 overflow-hidden">
-            <div className="px-6 py-3 bg-[#050505] border-b border-border flex justify-between items-center">
-               <span className="label-sub uppercase !text-[0.6rem] tracking-[2px]">{activeTab} Queue</span>
-               <div className="flex gap-2">
-                  {statusOrder.map((tab) => (
-                    tabCounts[tab] > 0 && (
-                      <span key={tab} className={`text-[0.6rem] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ${activeTab === tab ? 'bg-accent text-white' : 'bg-[#111] text-secondary/30'}`}>
-                        {tabCounts[tab]} {tab[0]}
-                      </span>
-                    )
-                  ))}
-               </div>
+            <div className="grid grid-cols-2 gap-1 border-b border-border bg-[#050505] p-3 sm:grid-cols-4 md:p-4">
+              {statusOrder.map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  aria-pressed={activeTab === tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-bold transition-colors sm:px-3 sm:text-[0.8rem] ${activeTab === tab ? 'bg-[#1a1a1a] text-white' : 'text-secondary hover:bg-[#111] hover:text-white'}`}
+                >
+                  <span className="truncate">{tab}</span>
+                  <span className={`shrink-0 text-[0.65rem] ${activeTab === tab ? 'text-accent' : 'text-secondary/50'}`}>
+                    {tabCounts[tab]}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            <div className="px-6 task-preview-list">
+            <div className="border-b border-border bg-[#050505] px-4 py-3 md:px-6">
+              <span className="label-sub !mb-0 uppercase !text-[0.65rem] tracking-[1.5px]">
+                {queueContent[activeTab].heading}
+              </span>
+            </div>
+
+            <div className="task-preview-list min-w-0 px-4 md:px-6">
               {isLoading ? (
-                <Skeleton height="200px" />
+                <div className="py-4"><Skeleton height="160px" /></div>
+              ) : isError ? (
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <p className="text-sm text-red-300">Tasks couldn't be loaded.</p>
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    className="text-xs font-black uppercase tracking-widest text-accent hover:text-white"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : filteredTasks.length === 0 ? (
-                <div className="py-12 text-center text-[#444] text-[0.9rem] italic">
-                  No {activeTab.toLowerCase()} tasks found.
+                <div className="py-10 text-center text-sm italic text-secondary/40">
+                  {queueContent[activeTab].empty}
                 </div>
               ) : (
                 filteredTasks.map((task) => (
                   <TaskItem
                     key={task._id}
                     task={task}
+                    compactOnMobile
                     onToggle={() => updateTaskMutation.mutate({ id: task._id, updates: { status: task.status === 'Completed' ? 'Pending' : 'Completed' }})}
                     onStart={() => updateTaskMutation.mutate({ id: task._id, updates: { status: 'In Progress' }})}
                     onEdit={() => setEditingTask(task)}
@@ -229,15 +205,25 @@ export default function PlannerPage() {
 
         </div>
 
-        {/* Sidebar */}
-        <div className="stack-gap-lg">
-
-          {/* Top 3 Priorities */}
-          <div className="stack-gap-md">
-            <span className="ml-1 uppercase label-sub">Top Priorities</span>
-            <div className="flex flex-col gap-3 mt-4">
-              {topPriorities.length === 0 ? (
-                <div className="p-10 bg-[#000] rounded-2xl border border-dashed border-border/20 text-center text-secondary/20 text-[0.8rem] font-bold italic">
+        <div className="min-w-0">
+          <div className="flex flex-col gap-3">
+            <span className="label-sub ml-1 uppercase">Top Priorities</span>
+            <div className="flex flex-col gap-3">
+              {isLoading ? (
+                <Skeleton height="140px" />
+              ) : isError ? (
+                <div className="rounded-2xl border border-border/20 bg-[#000] p-6 text-center">
+                  <p className="mb-3 text-sm text-red-300">Priorities couldn't be loaded.</p>
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    className="text-xs font-black uppercase tracking-widest text-accent hover:text-white"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : topPriorities.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border/20 bg-[#000] p-6 text-center text-sm font-bold italic text-secondary/40">
                   Define high-priority targets
                 </div>
               ) : topPriorities.map((t, i) => (
@@ -253,39 +239,6 @@ export default function PlannerPage() {
               ))}
             </div>
           </div>
-
-          <Card className="p-5 primary stack-gap-md">
-            <span className="label-sub !mb-0">Daily Habits</span>
-            <div className="mt-6 stack-gap-md">
-              {habitsQuery.isLoading ? (
-                <Skeleton height="160px" />
-              ) : !habitsQuery.data?.length ? (
-                <div className="py-6 text-center text-secondary/20 text-[0.8rem] font-bold italic">No active habits.</div>
-              ) : habitsQuery.data.map((habit, i) => {
-                const isToday = habit.completedDates?.some(d => d.startsWith(today));
-                const streak = calcStreak(habit.completedDates || []);
-                return (
-                  <div key={habit._id} className={`${i > 0 ? 'pt-5 border-t border-[#0a0a0a]' : ''}`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`font-black text-[0.9rem] ${isToday ? 'text-secondary/30' : 'text-white'}`}>{habit.name}</span>
-                      {streak > 0 && (
-                        <span className="bg-[#06d6a0]/10 text-[#06d6a0] border border-[#06d6a0]/20 text-[0.6rem] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
-                          {streak}D STREAK
-                        </span>
-                      )}
-                    </div>
-                    <div className="h-1 bg-[#0a0a0a] rounded-full overflow-hidden">
-                      <div className={`h-full transition-all duration-700 ease-out ${isToday ? 'w-full bg-[#06d6a0]' : 'w-0'}`} />
-                    </div>
-                    <div className="text-[0.6rem] font-black uppercase tracking-[2px] text-secondary/30 mt-2">
-                      {isToday ? 'SUCCESS TODAY' : 'PENDING'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
         </div>
       </div>
 
@@ -330,9 +283,11 @@ export default function PlannerPage() {
                     updateTaskMutation.mutate({
                       id: editingTask._id,
                       updates: { title: editingTask.title, category: editingTask.category, priority: editingTask.priority }
+                    }, {
+                      onSuccess: () => setEditingTask(null),
                     });
-                    setEditingTask(null);
                   }}
+                  disabled={updateTaskMutation.isPending}
                   className="!bg-accent !text-white !px-8 !py-2.5 !text-[0.75rem] !font-black !rounded-xl active:scale-95 transition-all shadow-xl uppercase tracking-widest"
                 >
                   Save Changes

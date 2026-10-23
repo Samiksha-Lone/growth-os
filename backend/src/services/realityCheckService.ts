@@ -1,5 +1,6 @@
 import Task from '../models/Task';
-import { buildDateRange, calculateCompletionRate } from '../utils/dateHelpers';
+import { buildDateRange } from '../utils/dateHelpers';
+import { summarizeTasks } from '../utils/taskMetrics';
 
 export class RealityCheckService {
   static async getRealityCheck(userId: string, date: Date): Promise<any> {
@@ -10,11 +11,7 @@ export class RealityCheckService {
       date: { $gte: startOfDay, $lt: endOfDay },
     });
 
-    const plannedTasks = tasks.length;
-    const completedTasks = tasks.filter(task => task.status === 'Completed').length;
-    const missedTasks = tasks.filter(task => task.status === 'Missed').length;
-
-    const completionPercentage = calculateCompletionRate(completedTasks, plannedTasks);
+    const { plannedTasks, completedTasks, missedTasks, completionPercentage } = summarizeTasks(tasks);
 
     let overPlanningIndicator = false;
     if (plannedTasks > 10) {

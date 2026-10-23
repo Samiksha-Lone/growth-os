@@ -82,7 +82,6 @@ export interface DashboardStats {
   tasksTotal: number;
   habitsDone: number;
   habitsTotal: number;
-  focusMinutes: number;
   score: number;
   weeklyTrend?: Array<{ day: string; value: number }>;
 }
@@ -94,11 +93,4 @@ export interface UserProfile {
   linkedinUrl?: string;
   portfolioUrl?: string;
   avatarUrl?: string;
-}
-
-export interface PomodoroSession {
-  _id?: string;
-  duration: number;
-  timestamp: string;
-  taskId?: string;
 }

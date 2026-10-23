@@ -5,7 +5,7 @@ export interface IReflection extends Document {
   goodThings: string[];
   badThings: string[];
   learnings: string[];
-  mood: number; // 1-10
+  mood: number; // 1-3
   productivityScore: number; // 1-10
   userId: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -32,7 +32,7 @@ const reflectionSchema = new Schema<IReflection>({
   mood: {
     type: Number,
     min: 1,
-    max: 10,
+    max: 3,
     required: true,
   },
   productivityScore: {

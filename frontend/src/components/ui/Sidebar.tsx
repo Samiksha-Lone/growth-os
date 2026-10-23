@@ -34,11 +34,6 @@ const mainLinks = [
     )
   },
   {
-    to: '/pomodoro', label: 'Pomodoro', icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-    )
-  },
-  {
     to: '/history', label: 'History', icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
     )
@@ -62,8 +57,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const { signOut, userEmail, githubUrl, linkedinUrl, portfolioUrl } = useAuth();
 
   return (
-    <aside className="bg-card border-r border-border p-5 flex flex-col gap-8 sticky top-0 h-screen w-[280px] overflow-hidden">
-      <div className="flex items-center justify-between px-4">
+    <aside className="bg-card border-r border-border p-5 flex flex-col gap-8 sticky top-0 h-dvh min-h-0 w-[280px] overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 border border-border flex items-center justify-center rounded-xl bg-[#0a0a0a] shadow-inner overflow-hidden">
             <Logo />
@@ -87,7 +82,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </button>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-6">
+      <nav className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
         <div className="space-y-1">
           {mainLinks.map((link) => (
             <NavLink
@@ -109,7 +104,9 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             </NavLink>
           ))}
         </div>
+      </nav>
 
+      <div className="mt-auto shrink-0">
         <div className="space-y-1 pt-6 border-t border-border">
           {utilityLinks.map((link) => (
             <NavLink
@@ -142,7 +139,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
 
         {(githubUrl || linkedinUrl || portfolioUrl) && (
-          <div className="mt-auto pt-6 border-t border-border flex items-center gap-5 justify-center">
+          <div className="mt-6 pt-6 border-t border-border flex items-center gap-5 justify-center">
             {githubUrl && (
               <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-secondary/60 transition-all duration-300 hover:text-white hover:scale-110">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path></svg>
@@ -160,7 +157,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
             )}
           </div>
         )}
-      </nav>
+      </div>
     </aside>
   );
 }

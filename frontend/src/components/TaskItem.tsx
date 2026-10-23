@@ -7,9 +7,10 @@ interface TaskItemProps {
   onStart?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  compactOnMobile?: boolean;
 }
 
-export function TaskItem({ task, onToggle, onStart, onEdit, onDelete }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onStart, onEdit, onDelete, compactOnMobile = false }: TaskItemProps) {
   const handleToggle = (e: React.MouseEvent) => {
     if (task.status !== 'Completed') {
       fireCelebration(e.clientX, e.clientY);
@@ -21,11 +22,11 @@ export function TaskItem({ task, onToggle, onStart, onEdit, onDelete }: TaskItem
 
   return (
     <div 
-      className={`task-preview-item group py-4 flex justify-between items-center transition-all duration-300 border-b border-[#1a1a1a] last:border-0 ${isInProgress ? 'border-l-[3px] border-l-[#3a86ff] bg-[#3a86ff]/[0.02] pl-3' : ''}`}
+      className={`task-preview-item group flex items-center justify-between border-b border-[#1a1a1a] py-4 transition-all duration-300 last:border-0 ${compactOnMobile ? 'min-w-0 gap-3' : ''} ${isInProgress ? 'border-l-[3px] border-l-[#3a86ff] bg-[#3a86ff]/[0.02] pl-3' : ''}`}
     >
-      <div className="flex items-center gap-4">
+      <div className={`flex items-center gap-4 ${compactOnMobile ? 'min-w-0 flex-1 gap-3 sm:gap-4' : ''}`}>
         <div 
-          className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''} transition-all duration-200`}
+          className={`task-checkbox ${compactOnMobile ? 'shrink-0' : ''} ${task.status === 'Completed' ? 'checked' : ''} transition-all duration-200`}
           onClick={handleToggle}
         >
           {task.status === 'Completed' && (
@@ -34,8 +35,8 @@ export function TaskItem({ task, onToggle, onStart, onEdit, onDelete }: TaskItem
             </svg>
           )}
         </div>
-        <div className="flex flex-col">
-          <span className={`text-[0.95rem] transition-all duration-300 ${task.status === 'Completed' ? 'text-secondary/50 line-through' : 'text-white'} ${isInProgress ? 'font-black' : 'font-semibold'}`}>
+        <div className={`flex flex-col ${compactOnMobile ? 'min-w-0' : ''}`}>
+          <span className={`${compactOnMobile ? 'break-words ' : ''}text-[0.95rem] transition-all duration-300 ${task.status === 'Completed' ? 'text-secondary/50 line-through' : 'text-white'} ${isInProgress ? 'font-black' : 'font-semibold'}`}>
             {task.title}
           </span>
           <div className="flex items-center gap-3 mt-0.5">
@@ -54,12 +55,12 @@ export function TaskItem({ task, onToggle, onStart, onEdit, onDelete }: TaskItem
         </div>
       </div>
       
-      <div className="flex items-center gap-4">
-        <span className={`task-tag text-[0.65rem] px-2 py-0.5 rounded cursor-default uppercase font-black tracking-wider transition-colors duration-200 ${task.status === 'Completed' ? 'opacity-40' : ''} tag-${task.category?.toLowerCase() || 'personal'}`}>
+      <div className={`flex items-center gap-4 ${compactOnMobile ? 'shrink-0 gap-2 sm:gap-4' : ''}`}>
+        <span className={`task-tag cursor-default rounded px-2 py-0.5 text-[0.65rem] font-black uppercase tracking-wider transition-colors duration-200 ${compactOnMobile ? 'shrink-0 px-1.5 text-[0.55rem] sm:px-2 sm:text-[0.65rem]' : ''} ${task.status === 'Completed' ? 'opacity-40' : ''} tag-${task.category?.toLowerCase() || 'personal'}`}>
           {task.category || 'Personal'}
         </span>
         
-        <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity duration-200">
+        <div className={`flex gap-1 transition-opacity duration-200 ${compactOnMobile ? 'opacity-100 sm:opacity-20 sm:group-hover:opacity-100' : 'opacity-20 group-hover:opacity-100'}`}>
           {onStart && task.status === 'Pending' && (
             <button 
               onClick={onStart}

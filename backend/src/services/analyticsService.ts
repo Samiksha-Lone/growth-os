@@ -2,6 +2,7 @@ import Task from '../models/Task';
 import Habit from '../models/Habit';
 import Reflection from '../models/Reflection';
 import { buildDateRange, calculateCompletionRate } from '../utils/dateHelpers';
+import { normalizeMoodScore } from '../utils/reflectionMetrics';
 import mongoose from 'mongoose';
 
 export class AnalyticsService {
@@ -157,8 +158,12 @@ export class AnalyticsService {
       date: { $gte: startDate, $lt: endDate },
     });
 
-    const avgMood = reflections.length > 0
-      ? reflections.reduce((acc, r) => acc + r.mood, 0) / reflections.length
+    const moodScores = reflections
+      .map(reflection => normalizeMoodScore(reflection.mood))
+      .filter((mood): mood is number => mood !== null);
+
+    const avgMood = moodScores.length > 0
+      ? moodScores.reduce((acc, mood) => acc + mood, 0) / moodScores.length
       : 0;
 
     const avgProductivity = reflections.length > 0
@@ -200,10 +205,15 @@ export class AnalyticsService {
       date: { $gte: startDate },
     }).sort({ date: 1 }).lean(); // Use lean() for read-only queries
 
-    return reflections.map(r => ({
-      date: r.date.toISOString().split('T')[0],
-      mood: r.mood,
-      productivity: r.productivityScore,
-    }));
+    return reflections.flatMap(reflection => {
+      const mood = normalizeMoodScore(reflection.mood);
+      return mood === null
+        ? []
+        : [{
+            date: reflection.date.toISOString().split('T')[0],
+            mood,
+            productivity: reflection.productivityScore,
+          }];
+    });
   }
 }

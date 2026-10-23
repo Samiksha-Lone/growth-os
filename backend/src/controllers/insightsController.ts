@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { InsightsService } from '../services/insightsService';
+import { AuthenticatedRequest } from '../types';
 
 export class InsightsController {
   static async getInsights(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -15,13 +16,14 @@ export class InsightsController {
     }
   }
 
-  static async dismissInsight(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async dismissInsight(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const insightId = Array.isArray(req.params.insightId) 
         ? req.params.insightId[0] 
         : req.params.insightId;
-      
-      const insight = await InsightsService.dismissInsight(insightId);
+      const userId = req.user._id.toString();
+
+      const insight = await InsightsService.dismissInsight(insightId, userId);
 
       if (!insight) {
         res.status(404).json({ error: 'Insight not found' });
