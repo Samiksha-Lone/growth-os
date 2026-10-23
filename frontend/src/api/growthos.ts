@@ -1,5 +1,6 @@
 import api from './axios';
 import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, RealitySummary, Task, UserProfile } from '../lib/types';
+import { localDateKey } from '../lib/dateUtils';
 
 export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
   const dateStr = date || new Date().toLocaleDateString('en-CA');
@@ -45,7 +46,14 @@ export async function createTask(taskData: Partial<Task>): Promise<Task> {
 
 export async function fetchHabits(limit: number = 50, skip: number = 0): Promise<Habit[]> {
   const response = await api.get('/habits', { params: { limit, skip } });
-  return response.data.habits || [];
+  const habits = response.data?.habits;
+  if (
+    !Array.isArray(habits) ||
+    habits.some((habit: any) => !Array.isArray(habit.completedDateKeys))
+  ) {
+    throw new Error('Habits response was incomplete.');
+  }
+  return habits;
 }
 
 export async function fetchReflections(limit: number = 30, skip: number = 0): Promise<Reflection[]> {
@@ -56,58 +64,75 @@ export async function fetchReflections(limit: number = 30, skip: number = 0): Pr
 export async function createReflection(reflection: Partial<Reflection>): Promise<Reflection> {
   const payload = {
     ...reflection,
-    date: reflection.date || new Date().toISOString(),
+    date: reflection.date || localDateKey(),
   };
 
   const response = await api.post('/reflections', payload);
   return response.data.reflection;
 }
 
-export async function fetchInsights(): Promise<AdvancedAnalytics> {
-  try {
-    const response = await api.get('/insights/insights');
-    
-    console.log('Insights API Response:', response.data);
-    
-    // Handle the response from backend
-    const data = response.data;
-    
-    // Ensure insights is an array
-    let insightsArray = Array.isArray(data.insights) ? data.insights : [];
-    
-    // Format insights
-    const formattedInsights = insightsArray.map((item: any, index: number) => ({
-      id: item._id || `insight-${index}`,
-      title: item.title || item.category || item.type || 'Insight',
-      detail: item.message || item.detail || '',
-    }));
+export async function updateReflection(reflectionId: string, updates: Partial<Reflection>): Promise<Reflection> {
+  const response = await api.put(`/reflections/${reflectionId}`, updates);
+  return response.data.reflection;
+}
 
-    // Format scores as strings
-    const scores = {
-      consistency: String(data.scores?.consistency ?? '0'),
-      goalAlignment: String(data.scores?.goalAlignment ?? '0'),
-    };
-
-    return {
-      insights: formattedInsights,
-      scores,
-      summary: data.summary || { total: 0, highSeverity: 0, actionable: 0 }
-    };
-  } catch (error: any) {
-    console.error('Error fetching insights:', error);
-    // Don't throw - return empty insights so the UI shows the "learning patterns" message
-    return {
-      insights: [],
-      scores: { consistency: '0', goalAlignment: '0' },
-      summary: { total: 0, highSeverity: 0, actionable: 0 }
-    };
+export async function fetchInsights(date?: string): Promise<AdvancedAnalytics> {
+  const response = await api.get('/insights/insights', { params: { date } });
+  const data = response.data;
+  if (
+    !data ||
+    !Array.isArray(data.insights) ||
+    !Number.isFinite(data.scores?.consistency) ||
+    !(data.scores?.goalAlignment === null || Number.isFinite(data.scores?.goalAlignment)) ||
+    !Number.isFinite(data.summary?.total) ||
+    !Number.isFinite(data.summary?.highSeverity) ||
+    !Number.isFinite(data.summary?.actionable)
+  ) {
+    throw new Error('Insights response was incomplete.');
   }
+
+  const insightsArray = data.insights;
+  const formattedInsights = insightsArray.map((item: any, index: number) => ({
+    id: item._id || `insight-${index}`,
+    title: item.title || item.category || item.type || 'Insight',
+    detail: item.message || item.detail || '',
+  }));
+
+  return {
+    insights: formattedInsights,
+    scores: {
+      consistency: String(data.scores.consistency),
+      goalAlignment: data.scores.goalAlignment === null
+        ? null
+        : String(data.scores.goalAlignment),
+    },
+    summary: data.summary,
+  };
 }
 
 export async function fetchRealitySummary(date?: string): Promise<RealitySummary> {
   const dateStr = date || new Date().toLocaleDateString('en-CA');
   const response = await api.get('/reality-check', { params: { date: dateStr } });
-  return response.data.realityCheck || response.data; // Handle both nested and flat responses
+  const summary = response.data?.realityCheck || response.data;
+  if (
+    !summary ||
+    !Number.isFinite(summary.plannedTasks) ||
+    !Number.isFinite(summary.completedTasks) ||
+    !Number.isFinite(summary.missedTasks) ||
+    !Number.isFinite(summary.completionPercentage) ||
+    !Array.isArray(summary.categoryBreakdown) ||
+    summary.categoryBreakdown.some((category: any) =>
+      typeof category.category !== 'string' ||
+      !Number.isFinite(category.plannedTasks) ||
+      !Number.isFinite(category.completedTasks) ||
+      !Number.isFinite(category.missedTasks) ||
+      !Number.isFinite(category.completionPercentage)
+    )
+  ) {
+    throw new Error('Daily task summary was incomplete.');
+  }
+
+  return summary;
 }
 
 export async function createHabit(name: string): Promise<Habit> {
@@ -134,7 +159,7 @@ export async function deleteGoal(goalId: string): Promise<void> {
 }
 
 export async function markHabitComplete(habitId: string): Promise<Habit> {
-  const localDate = new Date().toLocaleDateString('en-CA');
+  const localDate = localDateKey();
   const response = await api.post(`/habits/${habitId}/complete`, { date: localDate });
   return response.data.habit;
 }

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '../components/ui/Card';
@@ -22,7 +22,20 @@ export default function DashboardPage() {
   const greeting = useMemo(() => getGreeting(userName), [userName]);
   const queryClient = useQueryClient();
 
-  const localDate = useMemo(() => localDateKey(), []);
+  const [localDate, setLocalDate] = useState(() => localDateKey());
+
+  useEffect(() => {
+    const now = new Date();
+    const nextDay = new Date(now);
+    nextDay.setHours(24, 0, 0, 0);
+
+    const timeoutId = window.setTimeout(
+      () => setLocalDate(localDateKey()),
+      nextDay.getTime() - now.getTime()
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [localDate]);
 
   const statsQuery = useQuery<DashboardStats>({
     queryKey: dashboardStatsQueryKey(localDate),
@@ -70,7 +83,7 @@ export default function DashboardPage() {
         <p className="title-sub !text-secondary/60 italic">{greeting.sub}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
         <Card className="primary p-4 md:p-5">
           <span className="label-sub uppercase">Tasks</span>
           {statsQuery.isLoading ? (
@@ -117,29 +130,6 @@ export default function DashboardPage() {
                 {statsQuery.data.habitsDone} <span className="text-secondary/50">/ {statsQuery.data.habitsTotal}</span>
               </p>
               <p className="mt-1 text-xs text-secondary/50">completed today</p>
-            </>
-          )}
-        </Card>
-
-        <Card className="primary p-4 md:p-5">
-          <span className="label-sub uppercase">Today's Plan</span>
-          {statsQuery.isLoading ? (
-            <div className="mt-3"><Skeleton height="36px" /></div>
-          ) : statsQuery.isError || !statsQuery.data ? (
-            <div className="mt-3 flex flex-col items-start gap-2">
-              <p className="text-xs text-red-300">Today's plan unavailable.</p>
-              <button
-                type="button"
-                onClick={() => statsQuery.refetch()}
-                className="text-[0.6rem] font-black text-accent uppercase tracking-widest hover:text-white"
-              >
-                Retry
-              </button>
-            </div>
-          ) : (
-            <>
-              <p className="mt-2 text-2xl font-black text-white">{statsQuery.data.tasksTotal}</p>
-              <p className="mt-1 text-xs text-secondary/50">tasks scheduled today</p>
             </>
           )}
         </Card>
@@ -297,6 +287,7 @@ export default function DashboardPage() {
                         <div className="mt-1 flex items-center gap-2">
                           {task.startTime && <span className="text-[0.65rem] text-secondary/40 font-bold">{task.startTime}</span>}
                           {task.status === 'In Progress' && <span className="text-[0.6rem] text-accent font-black uppercase tracking-wider">In progress</span>}
+                          {task.status === 'Missed' && <span className="text-[0.6rem] text-red-300 font-black uppercase tracking-wider">Missed</span>}
                         </div>
                       </div>
                     </div>

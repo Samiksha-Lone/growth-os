@@ -95,3 +95,5 @@ dist/
 secrets/
 .credentials
 credentials.json
+.vercel
+.env*

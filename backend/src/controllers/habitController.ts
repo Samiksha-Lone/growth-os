@@ -1,6 +1,8 @@
 import { Response, NextFunction } from 'express';
 import { HabitService } from '../services/habitService';
 import { invalidateDashboardCache } from '../utils/cache';
+import { parseLocalDate } from '../utils/dateUtils';
+import { localDateKey, normalizeDateValue } from '../utils/dateHelpers';
 import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
 
@@ -31,7 +33,7 @@ export class HabitController {
 
   static async markHabitComplete(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const date = req.body.date ? new Date(req.body.date) : new Date();
+      const date = parseLocalDate(req.body.date);
       const habit = await HabitService.markHabitComplete(req.params.id as string, req.user?._id, date);
 
       if (!habit) {
@@ -70,7 +72,14 @@ export class HabitController {
       const pageSkip = parseInt(skip as string) || 0;
       
       const habits = await HabitService.getHabits(req.user?._id, pageLimit, pageSkip);
-      res.json({ habits });
+      const habitsWithDateKeys = habits.map(habit => ({
+        ...habit,
+        completedDateKeys: (habit.completedDates || [])
+          .map(date => normalizeDateValue(date))
+          .filter((date): date is Date => date !== null)
+          .map(date => localDateKey(date)),
+      }));
+      res.json({ habits: habitsWithDateKeys });
     } catch (error: any) {
       next(error);
     }

@@ -4,20 +4,20 @@ import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
 
 const createGoalSchema = Joi.object({
-  text: Joi.string().required(),
+  text: Joi.string().trim().min(1).required(),
   type: Joi.string().valid('goal', 'affirmation').required(),
 });
 
 export class GoalController {
   static async addGoal(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { error } = createGoalSchema.validate(req.body);
+      const { value, error } = createGoalSchema.validate(req.body);
       if (error) {
         res.status(400).json({ message: 'Validation error', errors: error.details.map(d => d.message) });
         return;
       }
 
-      const goalData = { ...req.body, userId: req.user._id };
+      const goalData = { ...value, userId: req.user._id };
       const goal = await GoalService.addGoal(goalData);
 
       res.status(201).json({ message: 'Goal added successfully', goal });

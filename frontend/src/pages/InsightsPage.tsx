@@ -1,34 +1,65 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchInsights, fetchRealitySummary, fetchHabits, fetchTasks } from '../api/growthos';
-import { habitQueryKey, taskQueryKey } from '../api/queryKeys';
+import { Link } from 'react-router-dom';
+import { fetchInsights, fetchRealitySummary, fetchHabits } from '../api/growthos';
+import { habitQueryKey } from '../api/queryKeys';
 import { localDateKey } from '../lib/dateUtils';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
-import type { AdvancedAnalytics, RealitySummary, Habit, Task } from '../lib/types';
+import type { AdvancedAnalytics, RealitySummary, Habit } from '../lib/types';
 
-function calcStreak(completedDates: string[]): number {
+function calcStreak(completedDates: string[], todayKey: string): number {
   if (!completedDates?.length) return 0;
-  const unique = [...new Set(completedDates.map(d => d.split('T')[0]))].sort().reverse();
+  const unique = new Set(completedDates
+    .map(date => date.slice(0, 10))
+    .filter(dateKey => /^\d{4}-\d{2}-\d{2}$/.test(dateKey) && dateKey <= todayKey));
+  const [year, month, day] = todayKey.split('-').map(Number);
+  let current = new Date(year, month - 1, day);
   let streak = 0;
-  let current = new Date();
-  current.setHours(0, 0, 0, 0);
-  for (const ds of unique) {
-    const d = new Date(ds);
-    d.setHours(0, 0, 0, 0);
-    if (Math.round((current.getTime() - d.getTime()) / 86400000) <= 1) { streak++; current = d; }
-    else break;
+
+  if (!unique.has(todayKey)) {
+    current.setDate(current.getDate() - 1);
+    const yesterdayKey = localDateKey(current);
+    if (!unique.has(yesterdayKey)) return 0;
+  }
+
+  while (unique.has(localDateKey(current))) {
+    streak++;
+    current.setDate(current.getDate() - 1);
   }
   return streak;
 }
 
+async function fetchAllHabits(): Promise<Habit[]> {
+  const habits: Habit[] = [];
+  const pageSize = 100;
+
+  for (let skip = 0; ; skip += pageSize) {
+    const page = await fetchHabits(pageSize, skip);
+    habits.push(...page);
+    if (page.length < pageSize) return habits;
+  }
+}
+
 export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState<'Insights' | 'Goals'>('Insights');
-  const localDate = useMemo(() => localDateKey(), []);
+  const [localDate, setLocalDate] = useState(() => localDateKey());
+
+  useEffect(() => {
+    const now = new Date();
+    const nextDay = new Date(now);
+    nextDay.setHours(24, 0, 0, 0);
+    const timeoutId = window.setTimeout(
+      () => setLocalDate(localDateKey()),
+      nextDay.getTime() - now.getTime()
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [localDate]);
 
   const insightsQuery = useQuery<AdvancedAnalytics>({ 
-    queryKey: ['insights'], 
-    queryFn: fetchInsights,
+    queryKey: ['insights', localDate],
+    queryFn: () => fetchInsights(localDate),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -43,17 +74,9 @@ export default function InsightsPage() {
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
-  const habitsQuery = useQuery<Habit[]>({ 
-    queryKey: habitQueryKey(20),
-    queryFn: () => fetchHabits(20), // Limit to 20 habits initially
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-  const tasksQuery = useQuery<Task[]>({ 
-    queryKey: taskQueryKey(undefined, 20),
-    queryFn: () => fetchTasks(undefined, 20), // Limit to 20 tasks initially
+  const habitsQuery = useQuery<Habit[]>({
+    queryKey: habitQueryKey(100),
+    queryFn: fetchAllHabits,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 5 * 60 * 1000,
@@ -62,18 +85,10 @@ export default function InsightsPage() {
 
   const reality = realityQuery.data;
   const completionPct = reality?.completionPercentage ?? 0;
-
-  const categoryBreakdown = useMemo(() => {
-    const tasks = tasksQuery.data ?? [];
-    const cats = ['Work', 'Study', 'Health', 'Personal'] as const;
-    return cats.map(cat => {
-      const planned = tasks.filter(t => t.category === cat).length;
-      const completed = tasks.filter(t => t.category === cat && t.status === 'Completed').length;
-      const missed = tasks.filter(t => t.category === cat && t.status === 'Missed').length;
-      const rate = planned > 0 ? Math.round((completed / planned) * 100) : null;
-      return { cat, planned, completed, missed, rate };
-    }).filter(r => r.planned > 0);
-  }, [tasksQuery.data]);
+  const categoryBreakdown = reality?.categoryBreakdown ?? [];
+  const activeStreaks = useMemo(() => (habitsQuery.data ?? [])
+    .map(habit => ({ habit, streak: calcStreak(habit.completedDateKeys ?? [], localDate) }))
+    .filter(({ streak }) => streak > 0), [habitsQuery.data, localDate]);
 
   return (
     <div className="page-stack">
@@ -106,6 +121,13 @@ export default function InsightsPage() {
                 <Card className="p-6 border-l-4 border-red-500 primary bg-red-950/20">
                   <div className="mb-2 font-bold text-red-400">❌ Error loading insights</div>
                   <p className="text-sm text-red-300">{insightsQuery.error?.message || 'Unable to fetch insights'}</p>
+                  <button
+                    type="button"
+                    onClick={() => insightsQuery.refetch()}
+                    className="mt-3 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                  >
+                    Retry
+                  </button>
                 </Card>
               ) : !insightsQuery.data?.insights?.length ? (
                 <Card className="p-12 text-center primary">
@@ -132,34 +154,51 @@ export default function InsightsPage() {
               )}
             </div>
 
-            {/* Category breakdown from real tasks */}
-            {!tasksQuery.isLoading && categoryBreakdown.length > 0 && (
-              <div className="stack-gap-md">
-                <span className="ml-1 uppercase label-sub">Category Breakdown</span>
+            <div className="stack-gap-md">
+              <span className="ml-1 uppercase label-sub">Today's Task Categories</span>
+              {realityQuery.isLoading ? (
+                <Skeleton height="100px" />
+              ) : realityQuery.isError ? (
+                <Card className="p-4 primary bg-red-950/20">
+                  <p className="text-sm text-red-300">Today's task categories are unavailable.</p>
+                  <button
+                    type="button"
+                    onClick={() => realityQuery.refetch()}
+                    className="mt-3 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                  >
+                    Retry
+                  </button>
+                </Card>
+              ) : categoryBreakdown.length === 0 ? (
+                <Card className="p-5 primary">
+                  <p className="text-sm text-secondary">No tasks planned for today.</p>
+                </Card>
+              ) : (
                 <div className="stack-gap-sm">
-                  {categoryBreakdown.map(({ cat, planned, completed, rate }) => (
-                    <Card key={cat} className="p-4 primary">
+                  {categoryBreakdown.map(({ category, plannedTasks, completedTasks, missedTasks, completionPercentage }) => (
+                    <Card key={category} className="p-4 primary">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="text-[0.75rem] text-accent font-black uppercase tracking-wider mb-2">
-                            {cat}
+                            {category}
                           </div>
                           <div className="flex items-center gap-6">
-                            <div className="text-2xl font-black text-white">{completed}/{planned}</div>
+                            <div className="text-2xl font-black text-white">{completedTasks}/{plannedTasks}</div>
                             <div className="text-[0.85rem] text-secondary">
-                              {rate}% complete
+                              {completionPercentage}% complete
                             </div>
                           </div>
+                          <p className="mt-1 text-xs text-secondary/70">{missedTasks} missed</p>
                         </div>
                         <div className="w-16 h-16 flex items-center justify-center rounded-full bg-[#1a1a1a] border border-border">
-                          <span className="text-lg font-black">{rate}%</span>
+                          <span className="text-lg font-black">{completionPercentage}%</span>
                         </div>
                       </div>
                     </Card>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Right: Daily Reality Check */}
@@ -170,24 +209,37 @@ export default function InsightsPage() {
               <Card className="p-6 border-l-4 border-red-500 primary bg-red-950/20">
                 <div className="font-bold text-red-400">❌ Error loading reality check</div>
                 <div className="mt-2 text-sm text-red-300">{realityQuery.error?.message}</div>
+                <button
+                  type="button"
+                  onClick={() => realityQuery.refetch()}
+                  className="mt-3 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                >
+                  Retry
+                </button>
               </Card>
             ) : (
               <Card className="p-6 border-l-4 primary border-cyan-400">
                 <div className="text-[0.7rem] text-cyan-400 font-black uppercase tracking-widest mb-2">
                   Today's Reality
                 </div>
-                <div className="mb-4">
-                  <div className="text-[2.5rem] font-black text-white mb-2">{completionPct}%</div>
-                  <p className="text-secondary text-[0.9rem] font-bold">
-                    {reality?.completedTasks || 0} of {reality?.plannedTasks || 0} tasks completed
-                  </p>
-                </div>
-                <div className="w-full h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full transition-all bg-gradient-to-r from-cyan-500 to-cyan-400" 
-                    style={{ width: `${completionPct}%` }}
-                  />
-                </div>
+                {reality && reality.plannedTasks > 0 ? (
+                  <>
+                    <div className="mb-4">
+                      <div className="text-[2.5rem] font-black text-white mb-2">{completionPct}%</div>
+                      <p className="text-secondary text-[0.9rem] font-bold">
+                        {reality.completedTasks} of {reality.plannedTasks} tasks completed · {reality.missedTasks} missed
+                      </p>
+                    </div>
+                    <div className="w-full h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+                      <div
+                        className="h-full transition-all bg-gradient-to-r from-cyan-500 to-cyan-400"
+                        style={{ width: `${completionPct}%` }}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm font-bold text-secondary">No tasks planned for today.</p>
+                )}
               </Card>
             )}
 
@@ -199,27 +251,35 @@ export default function InsightsPage() {
               ) : habitsQuery.isError ? (
                 <Card className="p-4 primary bg-red-950/20">
                   <p className="text-sm text-red-300">❌ Error loading habits: {habitsQuery.error?.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => habitsQuery.refetch()}
+                    className="mt-3 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                  >
+                    Retry
+                  </button>
                 </Card>
-              ) : habitsQuery.data?.length ? (
+              ) : !habitsQuery.data?.length ? (
+                <Card className="p-6 text-center primary">
+                  <p className="text-secondary text-[0.9rem]">No habits tracked yet.</p>
+                </Card>
+              ) : activeStreaks.length > 0 ? (
                 <div className="stack-gap-sm">
-                  {habitsQuery.data.map((habit, idx) => {
-                    const streak = calcStreak(habit.completedDates || []);
-                    return streak > 0 ? (
-                      <Card key={habit._id || idx} className="p-4 primary">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-[0.9rem] font-bold text-white mb-1">
-                              {habit.name}
-                            </div>
-                            <div className="text-[0.8rem] text-secondary">
-                              {streak} day streak
-                            </div>
+                  {activeStreaks.map(({ habit, streak }) => (
+                    <Card key={habit._id} className="p-4 primary">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="break-words text-[0.9rem] font-bold text-white mb-1">
+                            {habit.name}
                           </div>
-                          <div className="text-[1.5rem]">🔥</div>
+                          <div className="text-[0.8rem] text-secondary">
+                            {streak} day streak
+                          </div>
                         </div>
-                      </Card>
-                    ) : null;
-                  })}
+                        <div className="shrink-0 text-[1.5rem]">🔥</div>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               ) : (
                 <Card className="p-6 text-center primary">
@@ -237,10 +297,13 @@ export default function InsightsPage() {
           <span className="ml-1 uppercase label-sub">Personal Objectives</span>
           <Card className="p-8 text-center primary">
             <div className="text-[2rem] mb-4">🎯</div>
-            <div className="text-white font-[900] text-[1.1rem] mb-2">Goals Section</div>
+            <div className="text-white font-[900] text-[1.1rem] mb-2">Manage your goals</div>
             <p className="text-secondary text-[0.9rem] leading-relaxed">
-              View and track your personal goals and affirmations here.
+              Goals and affirmations are managed in Habits &amp; Routine.
             </p>
+            <Link to="/habits" className="mt-4 inline-block text-sm font-bold text-accent transition-colors hover:text-white">
+              Open Habits &amp; Routine
+            </Link>
           </Card>
         </div>
       )}

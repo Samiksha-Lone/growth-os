@@ -4,27 +4,21 @@ import Reflection from '../models/Reflection';
 import Goal from '../models/Goal';
 import Insight from '../models/Insight';
 import { normalizeMoodScore } from '../utils/reflectionMetrics';
-
-interface InsightMetrics {
-  currentCompletionRate: number;
-  historicalAverage: number;
-  percentChange: number;
-  trend: 'improving' | 'declining' | 'stable';
-}
+import { dateFromLocalDateKey, localDateKey, normalizeDateValue } from '../utils/dateHelpers';
+import { parseLocalDate } from '../utils/dateUtils';
 
 export class InsightsService {
-  static async generateInsights(userId: string): Promise<any> {
-    // Fetch data across different time periods for comparison
-    const now = new Date();
-    
-    // Current period (last 7 days)
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    // Previous period (7-14 days ago) for comparison
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    
-    // Historical data (last 90 days for baseline)
-    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  static async generateInsights(userId: string, date?: string): Promise<any> {
+    const today = parseLocalDate(date ?? new Date());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const currentPeriodStart = new Date(today);
+    currentPeriodStart.setDate(currentPeriodStart.getDate() - 6);
+    const previousPeriodStart = new Date(currentPeriodStart);
+    previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
+    const historicalStart = new Date(today);
+    historicalStart.setDate(historicalStart.getDate() - 89);
     
     // Fetch all data in parallel
     const [
@@ -33,34 +27,31 @@ export class InsightsService {
       allTasks,
       habits,
       currentReflections,
-      allReflections,
       goals,
     ] = await Promise.all([
       Task.find({ 
         userId, 
-        createdAt: { $gte: sevenDaysAgo } 
+        date: { $gte: currentPeriodStart, $lt: tomorrow }
       }).sort({ createdAt: -1 }).lean(),
       
       Task.find({ 
         userId, 
-        createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo }
+        date: { $gte: previousPeriodStart, $lt: currentPeriodStart }
       }).sort({ createdAt: -1 }).lean(),
       
       Task.find({ 
         userId, 
-        createdAt: { $gte: ninetyDaysAgo }
+        date: { $gte: historicalStart, $lt: tomorrow }
       }).sort({ createdAt: -1 }).lean(),
       
       Habit.find({ userId }).sort({ createdAt: -1 }).lean(),
       
       Reflection.find({ 
         userId, 
-        createdAt: { $gte: sevenDaysAgo }
+        date: { $gte: currentPeriodStart, $lt: tomorrow }
       }).sort({ createdAt: -1 }).lean(),
       
-      Reflection.find({ userId }).sort({ createdAt: -1 }).lean(),
-      
-      Goal.find({ userId }).sort({ createdAt: -1 }).lean(),
+      Goal.find({ userId, type: 'goal' }).sort({ createdAt: -1 }).lean(),
     ]);
 
     const insights: any[] = [];
@@ -107,22 +98,23 @@ export class InsightsService {
     for (const habit of habits) {
       const completedDates = habit.completedDates || [];
       if (completedDates.length > 0) {
-        const unique = [...new Set(completedDates.map((d: any) => 
-          typeof d === 'string' ? d.split('T')[0] : new Date(d).toLocaleDateString('en-CA')
-        ))].sort().reverse();
-        
+        const todayKey = localDateKey(today);
+        const completedKeys = new Set(completedDates
+          .map((date: any) => normalizeDateValue(date))
+          .filter((date: Date | null): date is Date => date !== null)
+          .map((date: Date) => localDateKey(date))
+          .filter((key: string) => key <= todayKey));
+        let cursor = dateFromLocalDateKey(todayKey);
         let currentStreak = 0;
-        let current = new Date();
-        current.setHours(0, 0, 0, 0);
-        
-        for (const ds of unique) {
-          const d = new Date(ds);
-          d.setHours(0, 0, 0, 0);
-          const dayDiff = Math.round((current.getTime() - d.getTime()) / 86400000);
-          if (dayDiff <= 1) { 
-            currentStreak++; 
-            current = d; 
-          } else break;
+
+        if (cursor && !completedKeys.has(todayKey)) {
+          cursor.setDate(cursor.getDate() - 1);
+          if (!completedKeys.has(localDateKey(cursor))) cursor = null;
+        }
+
+        while (cursor && completedKeys.has(localDateKey(cursor))) {
+          currentStreak++;
+          cursor.setDate(cursor.getDate() - 1);
         }
         
         // Show streak if 3+ days (lowered from 7+ for early users)
@@ -134,7 +126,7 @@ export class InsightsService {
             category: 'Habit Building',
             severity: 'low',
           });
-        } else if (currentStreak === 1 && unique.length > 0) {
+        } else if (currentStreak === 1) {
           // Encourage early starters
           insights.push({
             type: 'habit',
@@ -204,26 +196,20 @@ export class InsightsService {
       }
     }
 
-    // Goal Progress Analysis - Adjusted for early-stage goals
+    // Goals store no completion or progress state, so only encourage recently added goals.
     for (const goal of goals) {
-      const goalCreated = new Date(goal.createdAt);
-      const daysSinceCreation = Math.floor((now.getTime() - goalCreated.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Show insights for all active goals
-      if (daysSinceCreation > 30) {
-        insights.push({
-          type: 'goal',
-          title: 'Goal Progress Check',
-          message: `"${goal.text}" has been active for ${daysSinceCreation} days. Review your progress and adjust if needed.`,
-          category: 'Goal Tracking',
-          severity: 'medium',
-        });
-      } else if (daysSinceCreation > 0) {
-        // Show encouragement for new goals
+      const createdKey = localDateKey(new Date(goal.createdAt));
+      const createdDate = dateFromLocalDateKey(createdKey);
+      const todayDate = dateFromLocalDateKey(localDateKey(today));
+      const daysSinceCreation = createdDate && todayDate
+        ? Math.round((todayDate.getTime() - createdDate.getTime()) / 86400000)
+        : -1;
+
+      if (daysSinceCreation >= 0 && daysSinceCreation <= 30) {
         insights.push({
           type: 'goal',
           title: 'Goal Tracking Started',
-          message: `You're tracking "${goal.text}". Keep breaking it down into daily tasks!`,
+          message: `You're tracking "${goal.text}". Consider breaking it into smaller steps.`,
           category: 'Goal Tracking',
           severity: 'low',
         });
@@ -267,8 +253,10 @@ export class InsightsService {
     return {
       insights: insights.slice(0, 10), // Limit to 10 most relevant insights
       scores: {
-        consistency: Math.round((currentTasksCompleted / (currentTasks.length || 1)) * 100),
-        goalAlignment: goals.filter((g: any) => !g.completed).length || 0,
+        consistency: currentTasks.length
+          ? Math.round((currentTasksCompleted / currentTasks.length) * 100)
+          : 0,
+        goalAlignment: null,
       },
       summary: {
         total: insights.length,

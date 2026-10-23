@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { ReflectionService } from '../services/reflectionService';
+import { parseLocalDate } from '../utils/dateUtils';
 import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
 
@@ -29,7 +30,11 @@ export class ReflectionController {
         return;
       }
 
-      const reflectionData = { ...req.body, userId: req.user._id };
+      const reflectionData = {
+        ...req.body,
+        date: parseLocalDate(req.body.date),
+        userId: req.user._id,
+      };
       const reflection = await ReflectionService.createReflection(reflectionData);
 
       res.status(201).json({ message: 'Reflection created successfully', reflection });

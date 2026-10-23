@@ -1,5 +1,5 @@
 import Task from '../models/Task';
-import { buildDateRange } from '../utils/dateHelpers';
+import { buildDateRange, localDateKey } from '../utils/dateHelpers';
 import { summarizeTasks } from '../utils/taskMetrics';
 
 export class RealityCheckService {
@@ -12,6 +12,24 @@ export class RealityCheckService {
     });
 
     const { plannedTasks, completedTasks, missedTasks, completionPercentage } = summarizeTasks(tasks);
+    const tasksByCategory = new Map<string, typeof tasks>();
+    tasks.forEach(task => {
+      const categoryTasks = tasksByCategory.get(task.category) ?? [];
+      categoryTasks.push(task);
+      tasksByCategory.set(task.category, categoryTasks);
+    });
+    const categoryBreakdown = [...tasksByCategory]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([category, categoryTasks]) => {
+        const summary = summarizeTasks(categoryTasks);
+        return {
+          category,
+          plannedTasks: summary.plannedTasks,
+          completedTasks: summary.completedTasks,
+          missedTasks: summary.missedTasks,
+          completionPercentage: summary.completionPercentage,
+        };
+      });
 
     let overPlanningIndicator = false;
     if (plannedTasks > 10) {
@@ -19,11 +37,12 @@ export class RealityCheckService {
     }
 
     return {
-      date: date.toISOString().split('T')[0],
+      date: localDateKey(date),
       plannedTasks,
       completedTasks,
       missedTasks,
       completionPercentage,
+      categoryBreakdown,
       overPlanningIndicator,
       insights: this.generateInsights(completionPercentage, missedTasks, overPlanningIndicator),
     };

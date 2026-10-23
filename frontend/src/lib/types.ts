@@ -19,6 +19,7 @@ export interface Habit {
   name: string;
   streak: number;
   completedDates: string[];
+  completedDateKeys?: string[];
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -49,7 +50,7 @@ export interface AdvancedAnalytics {
   insights: Insight[];
   scores: {
     consistency: string;
-    goalAlignment: string;
+    goalAlignment: string | null;
   };
   summary: {
     total: number;
@@ -73,6 +74,13 @@ export interface RealitySummary {
   completedTasks: number;
   missedTasks: number;
   completionPercentage: number;
+  categoryBreakdown: Array<{
+    category: string;
+    plannedTasks: number;
+    completedTasks: number;
+    missedTasks: number;
+    completionPercentage: number;
+  }>;
   overPlanningIndicator: boolean;
   insights: string[];
 }

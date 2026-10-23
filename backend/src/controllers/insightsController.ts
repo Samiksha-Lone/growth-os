@@ -7,7 +7,8 @@ export class InsightsController {
     try {
       const userId = req.user._id?.toString() || req.user._id;
    
-      const insights = await InsightsService.generateInsights(userId);
+      const date = typeof req.query.date === 'string' ? req.query.date : undefined;
+      const insights = await InsightsService.generateInsights(userId, date);
       
       res.json(insights);
     } catch (error: any) {

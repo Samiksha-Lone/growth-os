@@ -48,19 +48,21 @@ export class HabitService {
       return localDateKey(date);
     });
 
-    const normalizedDates = habit.completedDates
+    const normalizedDates = new Set(habit.completedDates
       .map((d) => normalizeDateValue(d))
       .filter((d): d is Date => d !== null)
-      .map((d) => localDateKey(d));
+      .map((d) => localDateKey(d)));
+    const last30DaySet = new Set(last30Days);
+    const completedLast30Days = [...normalizedDates].filter(date => last30DaySet.has(date));
 
-    const completionRate = normalizedDates.length / 30 * 100;
+    const completionRate = completedLast30Days.length / 30 * 100;
 
     return {
       habit,
       completionRate: Math.round(completionRate * 100) / 100,
       last30Days: last30Days.map(date => ({
         date,
-        completed: normalizedDates.includes(date),
+        completed: normalizedDates.has(date),
       })),
     };
   }
@@ -82,25 +84,35 @@ export class HabitService {
   private static calculateStreak(completedDates: Date[]): number {
     if (!completedDates?.length) return 0;
 
+    let current = new Date();
+    current.setHours(0, 0, 0, 0);
+    const todayKey = localDateKey(current);
     const dateKeys = [...new Set(
       completedDates
         .map((d) => normalizeDateValue(d))
         .filter((d): d is Date => d !== null)
         .map((d) => localDateKey(d))
+        .filter(key => key <= todayKey)
     )].sort().reverse();
 
     let streak = 0;
-    let current = new Date();
-    current.setHours(0, 0, 0, 0);
+    const yesterday = new Date(current);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const latestKey = dateKeys[0];
+    if (latestKey !== todayKey && latestKey !== localDateKey(yesterday)) {
+      return 0;
+    }
+    if (latestKey === localDateKey(yesterday)) {
+      current = yesterday;
+    }
 
     for (const key of dateKeys) {
       const completedDate = dateFromLocalDateKey(key);
       if (!completedDate) continue;
 
-      const diff = Math.round((current.getTime() - completedDate.getTime()) / 86400000);
-      if (diff === 0 || diff === 1) {
+      if (localDateKey(completedDate) === localDateKey(current)) {
         streak += 1;
-        current = completedDate;
+        current.setDate(current.getDate() - 1);
       } else {
         break;
       }
