@@ -15,7 +15,6 @@ export default function HistoryPage() {
   const groupedTasks = useMemo(() => {
     if (!data) return {};
     return data.reduce((acc: Record<string, Task[]>, task) => {
-      // Backend returns task.date as ISO string ending in Z, but let's parse local date safely
       const taskDate = task.date.split('T')[0]; 
       if (!acc[taskDate]) acc[taskDate] = [];
       acc[taskDate].push(task);
@@ -29,16 +28,17 @@ export default function HistoryPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-1">
         <h1 className="title-main">Task History</h1>
+        <p className="title-sub text-zinc-400">Review your past task completions and performance logs.</p>
       </div>
 
       <div className="stack-gap-lg">
         {isLoading ? (
           <Skeleton height="300px" />
         ) : sortedDates.length === 0 ? (
-          <Card className="p-10 border border-dashed border-border/10 text-center bg-[#000]">
-            <div className="text-secondary/30 font-bold italic">No activity logs found.</div>
+          <Card className="p-8 sm:p-12 border border-dashed border-white/10 text-center bg-[#0c0c0e]">
+            <div className="text-zinc-400 font-medium text-sm">No activity logs recorded yet.</div>
           </Card>
         ) : (
           sortedDates.map((dateStr) => {
@@ -51,46 +51,46 @@ export default function HistoryPage() {
             const tasksList = groupedTasks[dateStr];
 
             return (
-              <div key={dateStr} className="stack-gap-md">
-                <span className="ml-1 uppercase label-sub mb-2">{displayDate}</span>
-                <Card className="p-0 border border-border/10">
-                  <div className="px-6 task-preview-list rounded-xl overflow-hidden bg-[#0a0a0a]/50">
+              <div key={dateStr} className="stack-gap-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">{displayDate}</span>
+                <Card className="p-0 border border-white/10 bg-[#0c0c0e]">
+                  <div className="px-4 sm:px-6 task-preview-list rounded-xl overflow-hidden">
                     {tasksList.map((task) => (
-                      <div key={task._id} className="task-preview-item py-4 flex justify-between items-center border-b border-[#1a1a1a] last:border-0 hover:bg-[#111] transition-all duration-300">
-                        <div className="flex flex-col">
-                          <span className={`text-[0.95rem] font-semibold ${task.status === 'Completed' ? 'text-secondary/50 line-through' : 'text-white'}`}>
+                      <div key={task._id} className="task-preview-item py-3.5 sm:py-4 flex justify-between items-center border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-all duration-200 gap-3">
+                        <div className="flex flex-col min-w-0">
+                          <span className={`text-sm sm:text-base font-semibold truncate ${task.status === 'Completed' ? 'text-zinc-500 line-through' : 'text-white'}`}>
                             {task.title}
                           </span>
-                          <div className="flex items-center gap-3 mt-1 text-[0.7rem] uppercase font-black tracking-wider text-secondary/40">
+                          <div className="flex items-center gap-3 mt-1 text-xs uppercase font-bold tracking-wider text-zinc-400">
                              {task.status !== 'Completed' && task.status !== 'Pending' ? (
-                               <span className={task.status === 'Missed' ? 'text-red-500' : 'text-[#3a86ff]'}>{task.status}</span>
+                               <span className={task.status === 'Missed' ? 'text-rose-400' : 'text-accent'}>{task.status}</span>
                              ) : null}
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-4">
-                          <span className={`text-[0.65rem] px-2 py-0.5 rounded cursor-default uppercase font-black tracking-wider opacity-60 tag-${task.category?.toLowerCase() || 'personal'}`}>
+                        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                          <span className={`text-[0.65rem] px-2 py-0.5 rounded-md cursor-default uppercase font-bold tracking-wider tag-${task.category?.toLowerCase() || 'personal'}`}>
                             {task.category || 'Personal'}
                           </span>
                           {task.status === 'Completed' && (
-                            <span className="text-[#06d6a0] opacity-80">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <span className="text-emerald-400">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                               </svg>
                             </span>
                           )}
                           {task.status === 'Pending' && (
-                            <span className="text-secondary opacity-30">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <span className="text-zinc-500">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                               </svg>
                             </span>
                           )}
                            {task.status === 'Missed' && (
-                            <span className="text-red-500 opacity-60">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <span className="text-rose-400">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="15" y1="9" x2="9" y2="15"></line>
                                 <line x1="9" y1="9" x2="15" y2="15"></line>

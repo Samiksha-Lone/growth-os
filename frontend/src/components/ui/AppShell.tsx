@@ -10,31 +10,32 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
-      {/* Mobile Overlay */}
+      {/* Mobile Backdrop Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-card border-r border-border transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      {/* Sidebar Drawer */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-[#0c0c0e] border-r border-white/10 transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${
+        sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
       }`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <div className="app-content">
+      <div className="app-content min-w-0">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="page-grid">
+        <main className="page-grid min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="min-w-0"
             >
               <Outlet />
             </motion.div>

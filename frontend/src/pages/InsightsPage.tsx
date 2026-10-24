@@ -62,9 +62,8 @@ export default function InsightsPage() {
     queryFn: () => fetchInsights(localDate),
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-    enabled: true
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
   const realityQuery = useQuery<RealitySummary>({ 
     queryKey: ['reality', localDate], 
@@ -87,19 +86,26 @@ export default function InsightsPage() {
   const completionPct = reality?.completionPercentage ?? 0;
   const categoryBreakdown = reality?.categoryBreakdown ?? [];
   const activeStreaks = useMemo(() => (habitsQuery.data ?? [])
-    .map(habit => ({ habit, streak: calcStreak(habit.completedDateKeys ?? [], localDate) }))
+    .map(habit => ({ habit, streak: calcStreak(habit.completedDates ?? [], localDate) }))
     .filter(({ streak }) => streak > 0), [habitsQuery.data, localDate]);
 
   return (
     <div className="page-stack">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <h1 className="title-main">Insights</h1>
-        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="title-main">Insights</h1>
+          <p className="title-sub text-zinc-400">Discover behavioral trends, productivity patterns, and execution velocity.</p>
+        </div>
+        <div className="tab-group flex gap-1.5 bg-[#09090b] p-1.5 rounded-xl border border-white/10 self-start sm:self-auto">
           {(['Insights', 'Goals'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 md:flex-none px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+              className={`px-5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                activeTab === tab
+                  ? 'bg-[#1c1c22] text-white shadow-md border border-white/10'
+                  : 'bg-transparent text-zinc-400 hover:text-white'
+              }`}
             >
               {tab}
             </button>
@@ -111,16 +117,16 @@ export default function InsightsPage() {
       {activeTab === 'Insights' && (
         <div className="split-layout">
           {/* Left: Pattern Insights */}
-          <div className="stack-gap-lg">
-            <div className="stack-gap-md">
-              <span className="ml-1 uppercase label-sub">Patterns & Trends</span>
+          <div className="stack-gap-lg min-w-0">
+            <div className="stack-gap-sm">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">Patterns & Trends</span>
 
               {insightsQuery.isLoading ? (
                 <Skeleton height="220px" />
               ) : insightsQuery.isError ? (
-                <Card className="p-6 border-l-4 border-red-500 primary bg-red-950/20">
-                  <div className="mb-2 font-bold text-red-400">❌ Error loading insights</div>
-                  <p className="text-sm text-red-300">{insightsQuery.error?.message || 'Unable to fetch insights'}</p>
+                <Card className="p-5 border-l-4 border-rose-500 primary bg-rose-950/20">
+                  <div className="mb-1 font-bold text-rose-400 text-sm">Error loading insights</div>
+                  <p className="text-xs text-rose-300">{insightsQuery.error?.message || 'Unable to fetch insights'}</p>
                   <button
                     type="button"
                     onClick={() => insightsQuery.refetch()}
@@ -130,22 +136,21 @@ export default function InsightsPage() {
                   </button>
                 </Card>
               ) : !insightsQuery.data?.insights?.length ? (
-                <Card className="p-12 text-center primary">
-                  <div className="text-[2rem] mb-4">📊</div>
-                  <div className="text-white font-[900] text-[1.2rem] mb-2">Learning your patterns...</div>
-                  <p className="text-secondary text-[0.9rem] leading-relaxed max-w-xs mx-auto italic">
-                    Keep tracking your habits and tasks! 
-                    Insights will appear here as you build your history.
+                <Card className="p-8 sm:p-12 text-center primary bg-[#0c0c0e]">
+                  <div className="text-3xl mb-3">📊</div>
+                  <div className="text-white font-bold text-base sm:text-lg mb-1.5">Learning your patterns...</div>
+                  <p className="text-zinc-400 text-sm leading-relaxed max-w-sm mx-auto">
+                    Keep logging your habits and daily reflections. Smart insights will generate automatically as history builds.
                   </p>
                 </Card>
               ) : (
                 <div className="stack-gap-sm">
                   {insightsQuery.data.insights.map((insight, idx) => (
-                    <Card key={insight.id || idx} className="p-5 border-l-2 primary border-accent">
-                      <div className="text-[0.65rem] text-accent font-black uppercase tracking-widest mb-1.5">
+                    <Card key={insight.id || idx} className="p-4 sm:p-5 border-l-4 primary border-accent bg-[#0c0c0e]">
+                      <div className="text-xs text-accent font-bold uppercase tracking-wider mb-1.5">
                         {insight.title}
                       </div>
-                      <p className="text-[0.95rem] text-[#ccc] font-bold leading-relaxed">
+                      <p className="text-sm sm:text-base text-zinc-200 font-normal leading-relaxed">
                         {insight.detail}
                       </p>
                     </Card>
@@ -154,44 +159,44 @@ export default function InsightsPage() {
               )}
             </div>
 
-            <div className="stack-gap-md">
-              <span className="ml-1 uppercase label-sub">Today's Task Categories</span>
+            <div className="stack-gap-sm">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">Today's Task Categories</span>
               {realityQuery.isLoading ? (
                 <Skeleton height="100px" />
               ) : realityQuery.isError ? (
-                <Card className="p-4 primary bg-red-950/20">
-                  <p className="text-sm text-red-300">Today's task categories are unavailable.</p>
+                <Card className="p-4 primary bg-rose-950/20">
+                  <p className="text-sm text-rose-300">Today's task categories are unavailable.</p>
                   <button
                     type="button"
                     onClick={() => realityQuery.refetch()}
-                    className="mt-3 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                    className="mt-2 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
                   >
                     Retry
                   </button>
                 </Card>
               ) : categoryBreakdown.length === 0 ? (
-                <Card className="p-5 primary">
-                  <p className="text-sm text-secondary">No tasks planned for today.</p>
+                <Card className="p-6 text-center primary bg-[#0c0c0e]">
+                  <p className="text-sm text-zinc-400 font-medium">No tasks scheduled for today.</p>
                 </Card>
               ) : (
-                <div className="stack-gap-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {categoryBreakdown.map(({ category, plannedTasks, completedTasks, missedTasks, completionPercentage }) => (
-                    <Card key={category} className="p-4 primary">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="text-[0.75rem] text-accent font-black uppercase tracking-wider mb-2">
+                    <Card key={category} className="p-4 primary bg-[#0c0c0e]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-[0.65rem] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider tag-${category.toLowerCase() || 'personal'}`}>
                             {category}
+                          </span>
+                          <div className="flex items-baseline gap-2 mt-2">
+                            <span className="text-xl font-bold text-white">{completedTasks}/{plannedTasks}</span>
+                            <span className="text-xs text-zinc-400 font-semibold">{completionPercentage}% done</span>
                           </div>
-                          <div className="flex items-center gap-6">
-                            <div className="text-2xl font-black text-white">{completedTasks}/{plannedTasks}</div>
-                            <div className="text-[0.85rem] text-secondary">
-                              {completionPercentage}% complete
-                            </div>
-                          </div>
-                          <p className="mt-1 text-xs text-secondary/70">{missedTasks} missed</p>
+                          {missedTasks > 0 && (
+                            <p className="mt-1 text-xs text-rose-400 font-medium">{missedTasks} missed</p>
+                          )}
                         </div>
-                        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-[#1a1a1a] border border-border">
-                          <span className="text-lg font-black">{completionPercentage}%</span>
+                        <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 shrink-0">
+                          <span className="text-sm font-black text-white">{completionPercentage}%</span>
                         </div>
                       </div>
                     </Card>
@@ -202,13 +207,13 @@ export default function InsightsPage() {
           </div>
 
           {/* Right: Daily Reality Check */}
-          <div className="stack-gap-lg">
+          <div className="stack-gap-lg min-w-0">
             {realityQuery.isLoading ? (
               <Skeleton height="120px" />
             ) : realityQuery.isError ? (
-              <Card className="p-6 border-l-4 border-red-500 primary bg-red-950/20">
-                <div className="font-bold text-red-400">❌ Error loading reality check</div>
-                <div className="mt-2 text-sm text-red-300">{realityQuery.error?.message}</div>
+              <Card className="p-5 border-l-4 border-rose-500 primary bg-rose-950/20">
+                <div className="font-bold text-rose-400 text-sm">Error loading reality check</div>
+                <div className="mt-1 text-xs text-rose-300">{realityQuery.error?.message}</div>
                 <button
                   type="button"
                   onClick={() => realityQuery.refetch()}
@@ -218,72 +223,65 @@ export default function InsightsPage() {
                 </button>
               </Card>
             ) : (
-              <Card className="p-6 border-l-4 primary border-cyan-400">
-                <div className="text-[0.7rem] text-cyan-400 font-black uppercase tracking-widest mb-2">
-                  Today's Reality
+              <Card className="p-5 border-l-4 primary border-accent bg-[#0c0c0e]">
+                <div className="text-xs text-accent font-bold uppercase tracking-wider mb-2">
+                  Today's Execution
                 </div>
                 {reality && reality.plannedTasks > 0 ? (
                   <>
-                    <div className="mb-4">
-                      <div className="text-[2.5rem] font-black text-white mb-2">{completionPct}%</div>
-                      <p className="text-secondary text-[0.9rem] font-bold">
+                    <div className="mb-3">
+                      <div className="text-3xl font-black text-white mb-1">{completionPct}%</div>
+                      <p className="text-zinc-300 text-xs sm:text-sm font-medium">
                         {reality.completedTasks} of {reality.plannedTasks} tasks completed · {reality.missedTasks} missed
                       </p>
                     </div>
-                    <div className="w-full h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full transition-all bg-gradient-to-r from-cyan-500 to-cyan-400"
+                        className="h-full transition-all duration-500 bg-accent rounded-full"
                         style={{ width: `${completionPct}%` }}
                       />
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm font-bold text-secondary">No tasks planned for today.</p>
+                  <p className="text-sm text-zinc-400 font-medium">No tasks planned for today.</p>
                 )}
               </Card>
             )}
 
             {/* Habit Streaks */}
-            <div className="stack-gap-md">
-              <span className="ml-1 uppercase label-sub">Active Streaks</span>
+            <div className="stack-gap-sm">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">Active Streaks</span>
               {habitsQuery.isLoading ? (
                 <Skeleton height="100px" />
               ) : habitsQuery.isError ? (
-                <Card className="p-4 primary bg-red-950/20">
-                  <p className="text-sm text-red-300">❌ Error loading habits: {habitsQuery.error?.message}</p>
-                  <button
-                    type="button"
-                    onClick={() => habitsQuery.refetch()}
-                    className="mt-3 text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-                  >
-                    Retry
-                  </button>
+                <Card className="p-4 primary bg-rose-950/20">
+                  <p className="text-xs text-rose-300">Error loading habits</p>
                 </Card>
               ) : !habitsQuery.data?.length ? (
-                <Card className="p-6 text-center primary">
-                  <p className="text-secondary text-[0.9rem]">No habits tracked yet.</p>
+                <Card className="p-5 text-center primary bg-[#0c0c0e]">
+                  <p className="text-zinc-400 text-sm font-medium">No habits tracked yet.</p>
                 </Card>
               ) : activeStreaks.length > 0 ? (
                 <div className="stack-gap-sm">
                   {activeStreaks.map(({ habit, streak }) => (
-                    <Card key={habit._id} className="p-4 primary">
+                    <Card key={habit._id} className="p-3.5 sm:p-4 primary bg-[#0c0c0e]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="break-words text-[0.9rem] font-bold text-white mb-1">
+                          <div className="break-words text-sm sm:text-base font-bold text-white mb-0.5">
                             {habit.name}
                           </div>
-                          <div className="text-[0.8rem] text-secondary">
+                          <div className="text-xs text-emerald-400 font-semibold">
                             {streak} day streak
                           </div>
                         </div>
-                        <div className="shrink-0 text-[1.5rem]">🔥</div>
+                        <div className="shrink-0 text-xl">🔥</div>
                       </div>
                     </Card>
                   ))}
                 </div>
               ) : (
-                <Card className="p-6 text-center primary">
-                  <p className="text-secondary text-[0.9rem]">No active streaks yet</p>
+                <Card className="p-5 text-center primary bg-[#0c0c0e]">
+                  <p className="text-zinc-400 text-sm font-medium">No active streaks yet.</p>
                 </Card>
               )}
             </div>
@@ -293,15 +291,15 @@ export default function InsightsPage() {
 
       {/* ── GOALS TAB ── */}
       {activeTab === 'Goals' && (
-        <div className="stack-gap-md">
-          <span className="ml-1 uppercase label-sub">Personal Objectives</span>
-          <Card className="p-8 text-center primary">
-            <div className="text-[2rem] mb-4">🎯</div>
-            <div className="text-white font-[900] text-[1.1rem] mb-2">Manage your goals</div>
-            <p className="text-secondary text-[0.9rem] leading-relaxed">
-              Goals and affirmations are managed in Habits &amp; Routine.
+        <div className="stack-gap-md min-w-0">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">Personal Objectives</span>
+          <Card className="p-8 sm:p-12 text-center primary bg-[#0c0c0e]">
+            <div className="text-3xl mb-3">🎯</div>
+            <div className="text-white font-bold text-base sm:text-lg mb-1.5">Manage your objectives</div>
+            <p className="text-zinc-400 text-sm leading-relaxed max-w-sm mx-auto">
+              Goals and daily affirmations can be viewed and updated in Habits &amp; Routine.
             </p>
-            <Link to="/habits" className="mt-4 inline-block text-sm font-bold text-accent transition-colors hover:text-white">
+            <Link to="/habits" className="mt-4 inline-block px-6 py-2.5 bg-accent hover:bg-accent/90 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md">
               Open Habits &amp; Routine
             </Link>
           </Card>

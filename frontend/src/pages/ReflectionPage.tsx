@@ -7,7 +7,7 @@ import { localDateKey } from '../lib/dateUtils';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Modal } from '../components/ui/Modal';
-import { FiFrown, FiMeh, FiSmile } from 'react-icons/fi';
+import { FiFrown, FiMeh, FiSmile, FiEdit3 } from 'react-icons/fi';
 import type { Reflection } from '../lib/types';
 
 function reflectionDateKey(value: string): string | null {
@@ -37,11 +37,11 @@ export default function ReflectionPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError, refetch } = useQuery<Reflection[]>({
     queryKey: ['reflections'],
-    queryFn: () => fetchReflections(10, 0), // Fetch only 10 initially, not 30
+    queryFn: () => fetchReflections(10, 0), // Fetch only 10 initially
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    gcTime: 10 * 60 * 1000,
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const loadReflection = useCallback((entry: Reflection) => {
@@ -120,32 +120,37 @@ export default function ReflectionPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-1">
         <h1 className="title-main">Daily Reflection</h1>
+        <p className="title-sub">Review today's wins, navigate obstacles, and recalibrate.</p>
       </div>
 
       <div className="split-layout">
-        <div className="stack-gap-lg">
-          <Card className="p-5 primary">
-            <div className="flex flex-col gap-4">
+        <div className="stack-gap-lg min-w-0">
+          <Card className="primary p-4 sm:p-6">
+            <div className="flex flex-col gap-5">
               <div>
-                <span className="mb-2 uppercase label-sub">What went well?</span>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-2">
+                  What went well?
+                </label>
                 <textarea
-                  className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-20 !min-h-0"
+                  className="field-textarea !bg-[#09090b] border border-white/10 hover:border-white/20 focus:border-accent text-white placeholder:text-zinc-500 !p-3.5 sm:!p-4 !text-sm sm:!text-[0.95rem] min-h-[90px] sm:min-h-[105px] rounded-xl resize-y transition-all leading-relaxed"
                   aria-label="What went well?"
                   value={goodThings}
                   onChange={(e) => {
                     hasEditedForm.current = true;
                     setGoodThings(e.target.value);
                   }}
-                  placeholder="Write down your wins for today..."
+                  placeholder="Write down your wins and accomplishments for today..."
                 />
               </div>
 
               <div>
-                <span className="mb-2 uppercase label-sub">Today's Challenges</span>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-2">
+                  Today's Challenges
+                </label>
                 <textarea
-                  className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-20 !min-h-0"
+                  className="field-textarea !bg-[#09090b] border border-white/10 hover:border-white/20 focus:border-accent text-white placeholder:text-zinc-500 !p-3.5 sm:!p-4 !text-sm sm:!text-[0.95rem] min-h-[90px] sm:min-h-[105px] rounded-xl resize-y transition-all leading-relaxed"
                   aria-label="Today's challenges"
                   value={badThings}
                   onChange={(e) => {
@@ -157,73 +162,126 @@ export default function ReflectionPage() {
               </div>
 
               <div>
-                <span className="mb-2 uppercase label-sub">Lessons Learned</span>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-2">
+                  Lessons Learned
+                </label>
                 <textarea
-                  className="field-textarea !bg-[#050505] !text-[0.9rem] !p-4 !h-20 !min-h-0"
+                  className="field-textarea !bg-[#09090b] border border-white/10 hover:border-white/20 focus:border-accent text-white placeholder:text-zinc-500 !p-3.5 sm:!p-4 !text-sm sm:!text-[0.95rem] min-h-[90px] sm:min-h-[105px] rounded-xl resize-y transition-all leading-relaxed"
                   aria-label="Lessons learned"
                   value={learnings}
                   onChange={(e) => {
                     hasEditedForm.current = true;
                     setLearnings(e.target.value);
                   }}
-                  placeholder="Lessons to integrate into next session..."
+                  placeholder="Key takeaways to integrate into your next session..."
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-6 md:gap-8 py-6 mt-2 border-t border-border/10">
-                <div className="flex flex-col gap-2.5">
-                  <span className="label-sub uppercase !mb-0 opacity-40 text-[0.65rem] tracking-[2px]">How are you feeling?</span>
-                  <div className="flex gap-2 bg-[#000] p-1.5 rounded-2xl border border-border/20 w-fit">
-                    <button type="button" aria-label="Challenging mood" aria-pressed={mood === 1} className={`min-h-11 min-w-11 p-2.5 rounded-xl text-xl transition-all flex items-center justify-center ${mood === 1 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => {
-                      hasEditedForm.current = true;
-                      setMood(1);
-                    }}><FiFrown /></button>
-                    <button type="button" aria-label="Steady mood" aria-pressed={mood === 2} className={`min-h-11 min-w-11 p-2.5 rounded-xl text-xl transition-all flex items-center justify-center ${mood === 2 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => {
-                      hasEditedForm.current = true;
-                      setMood(2);
-                    }}><FiMeh /></button>
-                    <button type="button" aria-label="Flow mood" aria-pressed={mood === 3} className={`min-h-11 min-w-11 p-2.5 rounded-xl text-xl transition-all flex items-center justify-center ${mood === 3 ? 'bg-[#1a1a1a] shadow-lg grayscale-0 text-white' : 'bg-transparent grayscale opacity-20 hover:opacity-100 text-white'}`} onClick={() => {
-                      hasEditedForm.current = true;
-                      setMood(3);
-                    }}><FiSmile /></button>
+              {/* Mood & Productivity Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 py-4 px-4 sm:px-5 mt-1 bg-[#09090b] rounded-xl border border-white/10">
+                {/* Mood Selector */}
+                <div className="flex flex-col gap-2 shrink-0">
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    How are you feeling?
+                  </span>
+                  <div className="flex gap-2 bg-[#000] p-1.5 rounded-xl border border-white/10 w-fit">
+                    <button
+                      type="button"
+                      aria-label="Challenging mood"
+                      aria-pressed={mood === 1}
+                      title="Challenging"
+                      className={`min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 p-2 rounded-lg text-xl transition-all flex items-center justify-center border ${
+                        mood === 1
+                          ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
+                          : 'bg-transparent border-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      onClick={() => {
+                        hasEditedForm.current = true;
+                        setMood(1);
+                      }}
+                    >
+                      <FiFrown />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Steady mood"
+                      aria-pressed={mood === 2}
+                      title="Steady"
+                      className={`min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 p-2 rounded-lg text-xl transition-all flex items-center justify-center border ${
+                        mood === 2
+                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                          : 'bg-transparent border-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      onClick={() => {
+                        hasEditedForm.current = true;
+                        setMood(2);
+                      }}
+                    >
+                      <FiMeh />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Flow mood"
+                      aria-pressed={mood === 3}
+                      title="Flow"
+                      className={`min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 p-2 rounded-lg text-xl transition-all flex items-center justify-center border ${
+                        mood === 3
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                          : 'bg-transparent border-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                      }`}
+                      onClick={() => {
+                        hasEditedForm.current = true;
+                        setMood(3);
+                      }}
+                    >
+                      <FiSmile />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-3 w-full">
+                {/* Productivity Slider */}
+                <div className="flex-1 flex flex-col gap-2.5 w-full">
                   <div className="flex items-center justify-between">
-                    <span className="label-sub uppercase !mb-0 opacity-40 text-[0.65rem] tracking-[2px]">Productivity Yield</span>
-                    <span className="text-[1.2rem] font-black text-white leading-none">{productivityScore} <span className="text-secondary/20 text-[0.8rem] uppercase ml-1">/ 10</span></span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                      Productivity Yield
+                    </span>
+                    <span className="text-lg sm:text-xl font-black text-white leading-none">
+                      {productivityScore} <span className="text-zinc-400 text-xs sm:text-sm font-semibold">/ 10</span>
+                    </span>
                   </div>
-                  <div className="w-full h-1.5 bg-[#0a0a0a] rounded-full relative group">
-                    <div className="h-full transition-all duration-300 rounded-full bg-accent" style={{ width: `${productivityScore * 10}%`, filter: 'drop-shadow(0 0 5px rgba(58,134,255,0.4))' }} />
+                  <div className="w-full h-2.5 bg-zinc-800/90 rounded-full relative flex items-center border border-white/5">
+                    <div
+                      className="h-full transition-all duration-150 rounded-full bg-accent shadow-[0_0_8px_rgba(0,191,255,0.4)]"
+                      style={{ width: `${productivityScore * 10}%` }}
+                    />
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-accent shadow-md pointer-events-none -ml-2"
+                      style={{ left: `${productivityScore * 10}%` }}
+                    />
                     <input
                       aria-label="Productivity score"
-                      type="range" min="1" max="10" value={productivityScore}
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={productivityScore}
                       onChange={(e) => {
                         hasEditedForm.current = true;
                         setProductivityScore(parseInt(e.target.value));
                       }}
-                      className="absolute top-1/2 left-0 w-full opacity-0 cursor-pointer -translate-y-1/2 !h-8"
+                      className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
                     />
                   </div>
                 </div>
               </div>
 
               {editingReflection && (
-                <p className="text-xs text-secondary/60">
-                  Editing reflection for {formatReflectionDate(editingReflection.date, { month: 'long', day: 'numeric', year: 'numeric' })}.
-                </p>
+                <div className="flex items-center gap-2 p-3 bg-accent/10 border border-accent/20 rounded-xl text-xs text-accent font-semibold">
+                  <FiEdit3 className="text-sm shrink-0" />
+                  <span>Editing reflection for {formatReflectionDate(editingReflection.date, { month: 'long', day: 'numeric', year: 'numeric' })}.</span>
+                </div>
               )}
 
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={saveReflection}
-                  className="w-full sm:w-auto !px-8 sm:!px-12 !py-4 !bg-accent !text-white !font-black !text-[0.85rem] !rounded-2xl active:scale-95 transition-all uppercase tracking-[2px] disabled:cursor-wait disabled:opacity-50"
-                >
-                  {isSaving ? 'SAVING...' : editingReflection || todayReflection ? 'UPDATE REFLECTION' : 'SAVE REFLECTION'}
-                </Button>
+              <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
                 {editingReflection && (
                   <Button
                     type="button"
@@ -242,31 +300,45 @@ export default function ReflectionPage() {
                         setProductivityScore(8);
                       }
                     }}
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto !py-3.5"
                   >
                     CANCEL EDIT
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={saveReflection}
+                  className="w-full sm:w-auto !px-8 sm:!px-10 !py-3.5 !bg-accent hover:!bg-accent/90 !text-white !font-bold !text-sm !rounded-xl active:scale-95 transition-all uppercase tracking-wider disabled:cursor-wait disabled:opacity-50 shadow-lg shadow-accent/25"
+                >
+                  {isSaving ? 'SAVING...' : editingReflection || todayReflection ? 'UPDATE REFLECTION' : 'SAVE REFLECTION'}
+                </Button>
               </div>
             </div>
           </Card>
         </div>
 
         {/* Sidebar: Your History */}
-        <div className="stack-gap-lg">
-          <span className="ml-1 uppercase label-sub">Your History</span>
+        <div className="stack-gap-lg min-w-0">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">
+            Your History
+          </span>
           <div className="stack-gap-md">
             {isLoading ? (
               <Skeleton height="300px" />
             ) : isError ? (
-              <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-border/20 bg-[#000] p-6 text-center">
-                <p className="text-sm text-red-300">Reflection history couldn't be loaded.</p>
-                <button type="button" onClick={() => refetch()} className="text-xs font-black uppercase tracking-widest text-accent hover:text-white">
+              <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-[#0c0c0e] p-6 text-center">
+                <p className="text-sm text-rose-300">Reflection history couldn't be loaded.</p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="text-xs font-black uppercase tracking-widest text-accent hover:text-white"
+                >
                   Retry
                 </button>
               </div>
             ) : !data?.length ? (
-              <div className="rounded-2xl border border-dashed border-border/10 bg-[#000] p-8 text-center text-sm font-medium text-secondary/60">
+              <div className="rounded-2xl border border-dashed border-white/10 bg-[#0c0c0e] p-8 text-center text-sm font-medium text-zinc-400">
                 Logs will appear here.
               </div>
             ) : data?.slice(0, 5).map((entry) => (
@@ -280,19 +352,21 @@ export default function ReflectionPage() {
                     setSelectedReflection(entry);
                   }
                 }}
-                className="group min-w-0 p-4 sm:p-5 bg-[#000] border border-border/10 rounded-2xl flex justify-between items-center gap-3 cursor-pointer transition-all hover:border-border/30"
+                className="group min-w-0 p-3.5 sm:p-4 bg-[#0c0c0e] hover:bg-[#141418] border border-white/10 hover:border-accent/40 rounded-xl flex justify-between items-center gap-3 cursor-pointer transition-all duration-200 shadow-sm"
                 onClick={() => setSelectedReflection(entry)}
               >
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <div className="font-black text-[0.95rem] text-white uppercase tracking-tight">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <div className="font-bold text-sm text-white uppercase tracking-tight">
                     {formatReflectionDate(entry.date, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
-                  <div className="max-w-full truncate text-secondary/40 text-[0.75rem] font-bold italic sm:w-[160px]">
-                    {entry.goodThings?.[0] || 'Metadata logged.'}
+                  <div className="truncate text-zinc-300 text-xs font-normal max-w-[200px] sm:max-w-[220px]">
+                    {entry.goodThings?.[0] || 'Reflection logged'}
                   </div>
                 </div>
-                <div className="transition-colors text-secondary/20 group-hover:text-white">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                <div className="transition-all text-zinc-500 group-hover:text-accent group-hover:translate-x-0.5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </div>
               </div>
             ))}
@@ -303,51 +377,82 @@ export default function ReflectionPage() {
       <Modal
         open={!!selectedReflection}
         onClose={() => setSelectedReflection(null)}
-        title={selectedReflection ? formatReflectionDate(selectedReflection.date, { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
+        title={selectedReflection ? formatReflectionDate(selectedReflection.date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : ''}
       >
         {selectedReflection && (
-          <div className="pb-6 stack-gap-lg">
-            <div className="flex items-center justify-between p-6 bg-[#000] rounded-3xl border border-border/10">
-              <div className="flex items-center gap-5">
-                <div className="text-2xl bg-[#0a0a0a] p-4 rounded-2xl border border-border/10 shadow-inner text-white flex items-center justify-center">
-                  {selectedReflection.mood === 1 ? <FiFrown /> : selectedReflection.mood === 2 ? <FiMeh /> : <FiSmile />}
+          <div className="flex flex-col gap-5 pt-1">
+            {/* Mood & Productivity header card */}
+            <div className="flex items-center justify-between p-4 sm:p-5 bg-[#121215] rounded-2xl border border-white/10">
+              <div className="flex items-center gap-3.5 sm:gap-4">
+                <div className="text-xl sm:text-2xl bg-[#1c1c22] p-3 rounded-xl border border-white/10 text-white flex items-center justify-center">
+                  {selectedReflection.mood === 1 ? (
+                    <FiFrown className="text-rose-400" />
+                  ) : selectedReflection.mood === 2 ? (
+                    <FiMeh className="text-amber-400" />
+                  ) : (
+                    <FiSmile className="text-emerald-400" />
+                  )}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px] mb-1">Mood</span>
-                  <span className="font-black text-white text-[1.1rem] tracking-tight">{selectedReflection.mood === 1 ? 'Challenging' : selectedReflection.mood === 2 ? 'Steady' : 'Flow'}</span>
+                  <span className="text-[0.65rem] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Mood</span>
+                  <span className="font-bold text-white text-base sm:text-lg tracking-tight">
+                    {selectedReflection.mood === 1 ? 'Challenging' : selectedReflection.mood === 2 ? 'Steady' : 'Flow'}
+                  </span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[2.2rem] font-black text-accent tracking-tighter leading-none">{selectedReflection.productivityScore}/10</div>
-                <div className="text-[0.6rem] text-secondary/20 font-black uppercase tracking-[3px] mt-2">Score</div>
+                <div className="text-2xl sm:text-3xl font-black text-accent tracking-tight leading-none">
+                  {selectedReflection.productivityScore}<span className="text-sm font-semibold text-zinc-400">/10</span>
+                </div>
+                <div className="text-[0.65rem] text-zinc-400 font-bold uppercase tracking-wider mt-1">Productivity</div>
               </div>
             </div>
 
-            <div className="mt-2 stack-gap-md">
-              <div className="stack-gap-md p-6 bg-[#050505]/40 rounded-3xl border border-border/10">
-                <span className="text-[0.65rem] text-[#06d6a0] font-black uppercase tracking-[2px]">Wins & Positives</span>
-                <p className="text-secondary/60 text-[0.9rem] font-bold leading-relaxed italic">
-                  <span className="whitespace-pre-wrap break-words">{selectedReflection.goodThings?.join('\n') || 'No data recorded.'}</span>
+            {/* Reflection details cards */}
+            <div className="flex flex-col gap-3.5">
+              <div className="p-4 sm:p-5 bg-emerald-950/20 rounded-2xl border border-emerald-500/20">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400 block mb-2">
+                  Wins & Positives
+                </span>
+                <p className="text-zinc-100 text-sm sm:text-base leading-relaxed font-normal">
+                  <span className="whitespace-pre-wrap break-words">
+                    {selectedReflection.goodThings?.filter(Boolean).join('\n') || 'No data recorded.'}
+                  </span>
                 </p>
               </div>
 
-              <div className="stack-gap-md p-6 bg-[#050505]/40 rounded-3xl border border-border/10">
-                <span className="text-[0.65rem] text-[#ef476f] font-black uppercase tracking-[2px]">Challenges</span>
-                <p className="text-secondary/60 text-[0.9rem] font-bold leading-relaxed italic">
-                  <span className="whitespace-pre-wrap break-words">{selectedReflection.badThings?.join('\n') || 'No data recorded.'}</span>
+              <div className="p-4 sm:p-5 bg-rose-950/20 rounded-2xl border border-rose-500/20">
+                <span className="text-xs font-black uppercase tracking-wider text-rose-400 block mb-2">
+                  Challenges
+                </span>
+                <p className="text-zinc-100 text-sm sm:text-base leading-relaxed font-normal">
+                  <span className="whitespace-pre-wrap break-words">
+                    {selectedReflection.badThings?.filter(Boolean).join('\n') || 'No data recorded.'}
+                  </span>
                 </p>
               </div>
 
-              <div className="stack-gap-md p-6 bg-[#050505]/40 rounded-3xl border border-border/10">
-                <span className="text-[0.65rem] text-[#ffd166] font-black uppercase tracking-[2px]">Lessons Learned</span>
-                <p className="text-secondary/60 text-[0.9rem] font-bold leading-relaxed italic">
-                  <span className="whitespace-pre-wrap break-words">{selectedReflection.learnings?.join('\n') || 'No data recorded.'}</span>
+              <div className="p-4 sm:p-5 bg-amber-950/20 rounded-2xl border border-amber-500/20">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-400 block mb-2">
+                  Lessons Learned
+                </span>
+                <p className="text-zinc-100 text-sm sm:text-base leading-relaxed font-normal">
+                  <span className="whitespace-pre-wrap break-words">
+                    {selectedReflection.learnings?.filter(Boolean).join('\n') || 'No data recorded.'}
+                  </span>
                 </p>
               </div>
             </div>
-            <Button type="button" onClick={() => startEditing(selectedReflection)} className="w-full sm:w-auto">
-              EDIT REFLECTION
-            </Button>
+
+            <div className="pt-2 flex flex-col sm:flex-row sm:justify-end gap-3">
+              <Button
+                type="button"
+                onClick={() => startEditing(selectedReflection)}
+                className="w-full sm:w-auto !py-3.5 !px-6 !bg-accent hover:!bg-accent/90 !text-white !font-bold !rounded-xl uppercase tracking-wider text-sm shadow-md"
+              >
+                EDIT REFLECTION
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

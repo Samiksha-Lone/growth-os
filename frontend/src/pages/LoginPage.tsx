@@ -48,14 +48,12 @@ export default function LoginPage() {
     event.preventDefault();
     
     if (isRegister) {
-      // Name validation: Only alphabets and spaces
       const nameRegex = /^[a-zA-Z\s]+$/;
       if (!nameRegex.test(name)) {
         toast.error('Name must only contain alphabets and spaces');
         return;
       }
 
-      // Password complexity: min 8 chars, at least one upper, lower, digit, and special char
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
       if (!passwordRegex.test(password)) {
         toast.error('Password must be at least 8 characters long and contain uppercase, lowercase, digits, and special characters');
@@ -86,37 +84,55 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-background px-4 py-8">
-      <Card className="w-full max-w-lg p-8 primary stack-gap-lg">
-        <div className="flex flex-col items-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0a0a0a] border border-border/10 text-white shadow-inner">
-            <Logo />
-          </div>
-          <h1 className="text-[2rem] font-black text-white tracking-tight leading-none mb-1">GrowthOS</h1>
-          <p className="text-[0.75rem] text-secondary/60 font-bold uppercase tracking-[2px]">Focus system authentication</p>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-[#050505] px-4 py-8 sm:py-12">
+      {/* ── Brand Header (Independent & Stable across tabs) ── */}
+      <div className="flex flex-col items-center text-center mb-6 sm:mb-8 select-none">
+        <div className="mb-3.5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0c0c0e] border border-white/10 text-white shadow-lg">
+          <Logo />
         </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-2">
+          GrowthOS
+        </h1>
+        <p className="text-xs text-zinc-400 font-bold uppercase tracking-[2px]">
+          Focus System Authentication
+        </p>
+      </div>
 
-        <div className="flex gap-2 bg-[#000] p-1.5 rounded-xl border border-border/50">
+      {/* ── Authentication Card ── */}
+      <Card className="w-full max-w-[450px] sm:max-w-[470px] p-6 sm:p-8 md:p-9 primary bg-[#0c0c0e] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl transition-all duration-300">
+        {/* Segmented Tab Switcher */}
+        <div className="flex gap-1.5 bg-[#070709] p-1.5 rounded-xl border border-white/10 mb-6 sm:mb-7">
           <button
             type="button"
-            className={`flex-1 py-2.5 rounded-lg text-[0.8rem] font-black uppercase tracking-widest transition-all ${mode === 'login' ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+              mode === 'login'
+                ? 'bg-[#1c1c22] text-white shadow-sm border border-white/10'
+                : 'bg-transparent text-zinc-400 hover:text-white border border-transparent'
+            }`}
             onClick={() => handleModeChange('login')}
           >
-            Sign in
+            Sign In
           </button>
           <button
             type="button"
-            className={`flex-1 py-2.5 rounded-lg text-[0.8rem] font-black uppercase tracking-widest transition-all ${mode === 'register' ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+              mode === 'register'
+                ? 'bg-[#1c1c22] text-white shadow-sm border border-white/10'
+                : 'bg-transparent text-zinc-400 hover:text-white border border-transparent'
+            }`}
             onClick={() => handleModeChange('register')}
           >
             Register
           </button>
         </div>
 
-        <form className="stack-gap-md" onSubmit={handleSubmit}>
+        {/* Authentication Form */}
+        <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
           {isRegister && (
-            <div className="flex flex-col gap-2">
-              <label htmlFor="name" className="ml-1 label-sub">Name</label>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">
+                Name
+              </label>
               <input
                 id="name"
                 value={name}
@@ -124,14 +140,17 @@ export default function LoginPage() {
                   const filtered = event.target.value.replace(/[^a-zA-Z\s]/g, '');
                   setName(filtered);
                 }}
+                required
                 placeholder="Full name"
-                className="field-input !h-12 !px-5 !text-[1rem]"
+                className="field-input !h-12 !px-4 !text-sm sm:!text-base !bg-[#09090b] border border-white/10 focus:border-accent text-white placeholder:text-zinc-500 rounded-xl transition-all"
               />
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="ml-1 label-sub">Email</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -139,12 +158,14 @@ export default function LoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
               placeholder="you@company.com"
-              className="field-input !h-12 !px-5 !text-[1rem]"
+              className="field-input !h-12 !px-4 !text-sm sm:!text-base !bg-[#09090b] border border-white/10 focus:border-accent text-white placeholder:text-zinc-500 rounded-xl transition-all"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="ml-1 label-sub">Password</label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">
+              Password
+            </label>
             <div className="relative">
               <input
                 id="password"
@@ -153,12 +174,12 @@ export default function LoginPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 required
                 placeholder="••••••••"
-                className="field-input !h-12 !px-5 !text-[1rem]"
+                className="field-input !h-12 !px-4 !pr-11 !text-sm sm:!text-base !bg-[#09090b] border border-white/10 focus:border-accent text-white placeholder:text-zinc-500 rounded-xl transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/40 hover:text-white transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -166,7 +187,7 @@ export default function LoginPage() {
             </div>
 
             {isRegister && password && (
-              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 px-1">
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 p-3 bg-[#070709] rounded-xl border border-white/5">
                 {[
                   { label: '8+ characters', met: password.length >= 8 },
                   { label: 'Uppercase', met: /[A-Z]/.test(password) },
@@ -175,8 +196,8 @@ export default function LoginPage() {
                   { label: 'Special char', met: /[@$!%*?&]/.test(password) },
                 ].map((req, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${req.met ? 'bg-accent shadow-[0_0_8px_rgba(var(--accent-rgb),0.5)]' : 'bg-secondary/20'}`} />
-                    <span className={`text-[0.65rem] font-bold uppercase tracking-wider transition-colors duration-300 ${req.met ? 'text-accent' : 'text-secondary/40'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${req.met ? 'bg-accent shadow-[0_0_8px_rgba(0,191,255,0.7)]' : 'bg-zinc-700'}`} />
+                    <span className={`text-[0.65rem] font-bold uppercase tracking-wider transition-colors duration-200 ${req.met ? 'text-accent' : 'text-zinc-400'}`}>
                       {req.label}
                     </span>
                   </div>
@@ -186,8 +207,10 @@ export default function LoginPage() {
           </div>
 
           {isRegister && (
-            <div className="flex flex-col gap-2">
-              <label htmlFor="confirm-password" className="ml-1 label-sub">Confirm password</label>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="confirm-password" className="text-xs font-bold uppercase tracking-wider text-zinc-300 ml-1">
+                Confirm Password
+              </label>
               <div className="relative">
                 <input
                   id="confirm-password"
@@ -196,12 +219,12 @@ export default function LoginPage() {
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
                   placeholder="••••••••"
-                  className="field-input !h-12 !px-5 !text-[1rem]"
+                  className="field-input !h-12 !px-4 !pr-11 !text-sm sm:!text-base !bg-[#09090b] border border-white/10 focus:border-accent text-white placeholder:text-zinc-500 rounded-xl transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/40 hover:text-white transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
                   aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                 >
                   {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -210,13 +233,13 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="pt-2">
+          <div className="pt-2 sm:pt-3">
             <Button
               type="submit"
               disabled={loading}
-              className="w-full !py-3.5 !bg-accent !text-white !font-black !text-[0.8rem] !rounded-xl active:scale-95 transition-all shadow-xl uppercase tracking-widest"
+              className="w-full !h-12 !bg-accent hover:!bg-accent/90 !text-white !font-bold !text-xs sm:!text-sm !rounded-xl active:scale-[0.99] transition-all shadow-lg shadow-accent/25 uppercase tracking-wider cursor-pointer"
             >
-              {loading ? 'Working…' : isRegister ? 'Create account' : 'Sign in'}
+              {loading ? 'Working…' : isRegister ? 'Create Account' : 'Sign In'}
             </Button>
           </div>
         </form>

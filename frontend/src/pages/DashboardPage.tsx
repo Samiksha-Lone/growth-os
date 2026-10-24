@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
-import { fetchDashboardStats, fetchGoals, fetchTasks, updateTask } from '../api/growthos';
-import { dashboardStatsQueryKey, taskQueryKey } from '../api/queryKeys';
+import { fetchDashboardStats, fetchGoals, fetchTasks, updateTask, fetchHabits, markHabitComplete } from '../api/growthos';
+import { dashboardStatsQueryKey, taskQueryKey, habitQueryKey } from '../api/queryKeys';
 import { useAuth } from '../hooks/useAuth';
 import { localDateKey } from '../lib/dateUtils';
-import type { DashboardStats, Goal, Task } from '../lib/types';
+import { fireCelebration } from '../lib/rewards';
+import toast from 'react-hot-toast';
+import type { DashboardStats, Goal, Task, Habit } from '../lib/types';
 
 function getGreeting(name: string | null): { text: string; sub: string } {
   const hour = new Date().getHours();
@@ -45,6 +47,7 @@ export default function DashboardPage() {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
   const tasksQuery = useQuery<Task[]>({
     queryKey: taskQueryKey(localDate, 20),
     queryFn: () => fetchTasks(localDate, 20),
@@ -53,6 +56,16 @@ export default function DashboardPage() {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  const habitsQuery = useQuery<Habit[]>({
+    queryKey: habitQueryKey(50),
+    queryFn: () => fetchHabits(50),
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
   const goalsQuery = useQuery<Goal[]>({
     queryKey: ['goals'],
     queryFn: fetchGoals,
@@ -63,6 +76,7 @@ export default function DashboardPage() {
   });
 
   const todayTasks = useMemo(() => tasksQuery.data?.slice(0, 5) ?? [], [tasksQuery.data]);
+  const todayHabits = useMemo(() => habitsQuery.data?.slice(0, 5) ?? [], [habitsQuery.data]);
   const goalsCount = goalsQuery.data?.filter(goal => goal.type === 'goal').length ?? 0;
   const affirmationsCount = goalsQuery.data?.filter(goal => goal.type === 'affirmation').length ?? 0;
 
@@ -74,85 +88,105 @@ export default function DashboardPage() {
       );
       queryClient.invalidateQueries({ queryKey: dashboardStatsQueryKey(localDate) });
     },
+    onError: () => toast.error("Couldn't update the task. Please try again."),
   });
+
+  const markHabitMutation = useMutation({
+    mutationFn: (habitId: string) => markHabitComplete(habitId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: habitQueryKey(50) });
+      queryClient.invalidateQueries({ queryKey: dashboardStatsQueryKey(localDate) });
+      toast.success('Habit checked in!');
+    },
+    onError: () => toast.error("Couldn't check in habit. Please try again."),
+  });
+
+  const isHabitDoneToday = (habit: Habit) => {
+    return (
+      habit.completedDateKeys?.includes(localDate) ||
+      habit.completedDates?.some(d => d.startsWith(localDate)) ||
+      false
+    );
+  };
 
   return (
     <div className="page-stack">
-      <div className="mb-2">
+      <div className="flex flex-col gap-1">
         <h1 className="title-main">{greeting.text}</h1>
-        <p className="title-sub !text-secondary/60 italic">{greeting.sub}</p>
+        <p className="title-sub text-zinc-400">{greeting.sub}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-        <Card className="primary p-4 md:p-5">
-          <span className="label-sub uppercase">Tasks</span>
+      {/* Top 3 Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 md:gap-4">
+        <Card className="primary p-4 sm:p-5 bg-[#0c0c0e]">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-1">Tasks</span>
           {statsQuery.isLoading ? (
-            <div className="mt-3"><Skeleton height="36px" /></div>
+            <div className="mt-2"><Skeleton height="36px" /></div>
           ) : statsQuery.isError || !statsQuery.data ? (
-            <div className="mt-3 flex flex-col items-start gap-2">
-              <p className="text-xs text-red-300">Task counts unavailable.</p>
+            <div className="mt-2 flex flex-col items-start gap-2">
+              <p className="text-xs text-rose-300">Task counts unavailable.</p>
               <button
                 type="button"
                 onClick={() => statsQuery.refetch()}
-                className="text-[0.6rem] font-black text-accent uppercase tracking-widest hover:text-white"
+                className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white"
               >
                 Retry
               </button>
             </div>
           ) : (
             <>
-              <p className="mt-2 text-2xl font-black text-white">
-                {statsQuery.data.tasksToday} <span className="text-secondary/50">/ {statsQuery.data.tasksTotal}</span>
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-white">
+                {statsQuery.data.tasksToday} <span className="text-zinc-400 text-sm font-semibold">/ {statsQuery.data.tasksTotal}</span>
               </p>
-              <p className="mt-1 text-xs text-secondary/50">completed / scheduled today</p>
+              <p className="mt-1 text-xs text-zinc-400 font-medium">completed / scheduled today</p>
             </>
           )}
         </Card>
 
-        <Card className="primary p-4 md:p-5">
-          <span className="label-sub uppercase">Habits</span>
+        <Card className="primary p-4 sm:p-5 bg-[#0c0c0e]">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-1">Habits</span>
           {statsQuery.isLoading ? (
-            <div className="mt-3"><Skeleton height="36px" /></div>
+            <div className="mt-2"><Skeleton height="36px" /></div>
           ) : statsQuery.isError || !statsQuery.data ? (
-            <div className="mt-3 flex flex-col items-start gap-2">
-              <p className="text-xs text-red-300">Habit counts unavailable.</p>
+            <div className="mt-2 flex flex-col items-start gap-2">
+              <p className="text-xs text-rose-300">Habit counts unavailable.</p>
               <button
                 type="button"
                 onClick={() => statsQuery.refetch()}
-                className="text-[0.6rem] font-black text-accent uppercase tracking-widest hover:text-white"
+                className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white"
               >
                 Retry
               </button>
             </div>
           ) : (
             <>
-              <p className="mt-2 text-2xl font-black text-white">
-                {statsQuery.data.habitsDone} <span className="text-secondary/50">/ {statsQuery.data.habitsTotal}</span>
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-white">
+                {statsQuery.data.habitsDone} <span className="text-zinc-400 text-sm font-semibold">/ {statsQuery.data.habitsTotal}</span>
               </p>
-              <p className="mt-1 text-xs text-secondary/50">completed today</p>
+              <p className="mt-1 text-xs text-zinc-400 font-medium">completed today</p>
             </>
           )}
         </Card>
 
-        <Card className="primary p-4 md:p-5">
-          <span className="label-sub uppercase">Goals &amp; Affirmations</span>
+        <Card className="primary p-4 sm:p-5 sm:col-span-2 md:col-span-1 bg-[#0c0c0e]">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-1">Goals &amp; Affirmations</span>
           {goalsQuery.isLoading ? (
-            <div className="mt-3"><Skeleton height="36px" /></div>
+            <div className="mt-2"><Skeleton height="36px" /></div>
           ) : goalsQuery.isError || !goalsQuery.data ? (
-            <div className="mt-3 flex flex-col items-start gap-2">
-              <p className="text-xs text-red-300">Goal counts unavailable.</p>
+            <div className="mt-2 flex flex-col items-start gap-2">
+              <p className="text-xs text-rose-300">Goal counts unavailable.</p>
               <button
                 type="button"
                 onClick={() => goalsQuery.refetch()}
-                className="text-[0.6rem] font-black text-accent uppercase tracking-widest hover:text-white"
+                className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white"
               >
                 Retry
               </button>
             </div>
           ) : (
             <>
-              <p className="mt-2 text-2xl font-black text-white">{goalsCount + affirmationsCount}</p>
-              <p className="mt-1 text-xs text-secondary/50">
+              <p className="mt-1 text-2xl sm:text-3xl font-black text-white">{goalsCount + affirmationsCount}</p>
+              <p className="mt-1 text-xs text-zinc-400 font-medium">
                 {goalsCount} goals · {affirmationsCount} affirmations
               </p>
             </>
@@ -160,162 +194,87 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8">
-        <Card className="primary !p-0 overflow-hidden">
-          <div className="px-4 md:px-6 py-3 bg-[#050505] border-b border-border flex justify-between items-center gap-3">
-            <span className="text-[0.65rem] font-black text-secondary/50 uppercase tracking-[2px]">Today's Tasks</span>
-            <Link to="/planner" className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white transition-colors">
+      {/* Main 2 Column Grid: Today's Tasks & Today's Habits */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+        {/* ── CARD 1: TODAY'S TASKS ── */}
+        <Card className="primary !p-0 overflow-hidden bg-[#0c0c0e]">
+          <div className="px-4 md:px-6 py-3.5 bg-[#070709] border-b border-white/10 flex justify-between items-center gap-3">
+            <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Today's Tasks</span>
+            <Link to="/planner" className="text-xs font-bold text-accent uppercase tracking-wider hover:text-white transition-colors">
               Open Planner
             </Link>
           </div>
 
           <div className="px-4 md:px-6">
-            {statsQuery.isLoading ? (
-              <div className="py-5"><Skeleton height="48px" /></div>
-            ) : statsQuery.isError ? (
-              <div className="py-5 flex flex-col items-start gap-3">
-                <p className="text-sm text-red-300">Today's task summary couldn't be loaded.</p>
+            {tasksQuery.isLoading ? (
+              <div className="py-6"><Skeleton height="150px" /></div>
+            ) : tasksQuery.isError ? (
+              <div className="py-6 flex flex-col items-center gap-3 text-center">
+                <p className="text-sm text-rose-300">Today's task list couldn't be loaded.</p>
                 <button
                   type="button"
-                  onClick={() => statsQuery.refetch()}
+                  onClick={() => tasksQuery.refetch()}
                   className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
                 >
-                  Retry summary
+                  Retry
                 </button>
               </div>
-            ) : !statsQuery.data ? (
-              <div className="py-5 flex flex-col items-start gap-3">
-                <p className="text-sm text-red-300">Today's task summary is unavailable.</p>
-                <button
-                  type="button"
-                  onClick={() => statsQuery.refetch()}
-                  className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-                >
-                  Retry summary
-                </button>
+            ) : todayTasks.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm font-bold text-white">Nothing planned for today</p>
+                <Link to="/planner" className="mt-2 inline-block text-xs font-bold text-accent hover:text-white transition-colors">
+                  Plan a task
+                </Link>
               </div>
-            ) : statsQuery.data.tasksTotal === 0 && (tasksQuery.data?.length ?? 0) > 0 ? (
-              <div className="py-5 flex flex-col items-start gap-3">
-                <p className="text-sm text-red-300">The task summary doesn't match today's task list.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    statsQuery.refetch();
-                    tasksQuery.refetch();
-                  }}
-                  className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-                >
-                  Retry task data
-                </button>
-              </div>
-            ) : statsQuery.data.tasksTotal === 0 ? (
-              null
             ) : (
-              <div className="py-5 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-white">{statsQuery.data.tasksToday}</span>
-                <span className="text-sm text-secondary/60">of {statsQuery.data.tasksTotal} tasks completed</span>
-              </div>
-            )}
-
-            <div className="border-t border-border/50">
-              {tasksQuery.isLoading ? (
-                <div className="py-4"><Skeleton height="150px" /></div>
-              ) : tasksQuery.isError ? (
-                <div className="py-6 flex flex-col items-center gap-3 text-center">
-                  <p className="text-sm text-red-300">Today's task list couldn't be loaded.</p>
-                  <button
-                    type="button"
-                    onClick={() => tasksQuery.refetch()}
-                    className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-                  >
-                    Retry task list
-                  </button>
-                </div>
-              ) : todayTasks.length === 0 && (statsQuery.isError || (statsQuery.data?.tasksTotal ?? 0) > 0) ? (
-                <div className="py-6 flex flex-col items-center gap-3 text-center">
-                  <p className="text-sm text-red-300">
-                    {statsQuery.isError
-                      ? "Today's task summary couldn't be verified."
-                      : "Tasks are scheduled, but today's list couldn't be loaded."}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      statsQuery.refetch();
-                      tasksQuery.refetch();
-                    }}
-                    className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-                  >
-                    Retry task data
-                  </button>
-                </div>
-              ) : todayTasks.length === 0 ? (
-                <div className="py-8 text-center">
-                  <p className="text-sm font-bold text-white">Nothing planned for today</p>
-                  <Link to="/planner" className="mt-2 inline-block text-xs font-bold text-accent hover:text-white transition-colors">
-                    Plan a task
-                  </Link>
-                </div>
-              ) : (
-                todayTasks.map((task) => (
-                  <div key={task._id} className="flex justify-between items-center py-3 md:py-4 px-2 md:px-3 border-b border-[#0a0a0a] last:border-0 gap-3 rounded-lg hover:bg-[#1a1a1a]/40 transition-colors">
-                    <div className="flex items-center flex-1 min-w-0 gap-3">
-                      <button
-                        type="button"
-                        aria-label={task.status === 'Completed' ? `Mark ${task.title} pending` : `Mark ${task.title} completed`}
-                        disabled={updateTaskMutation.isPending}
-                        onClick={() => updateTaskMutation.mutate({
+              todayTasks.map((task) => (
+                <div key={task._id} className="flex justify-between items-center py-3 md:py-3.5 px-2 md:px-3 border-b border-white/5 last:border-0 gap-3 rounded-lg hover:bg-white/[0.03] transition-colors">
+                  <div className="flex items-center flex-1 min-w-0 gap-3">
+                    <button
+                      type="button"
+                      aria-label={task.status === 'Completed' ? `Mark ${task.title} pending` : `Mark ${task.title} completed`}
+                      disabled={updateTaskMutation.isPending}
+                      onClick={(e) => {
+                        if (task.status !== 'Completed') {
+                          fireCelebration(e.clientX, e.clientY);
+                        }
+                        updateTaskMutation.mutate({
                           id: task._id,
                           updates: { status: task.status === 'Completed' ? 'Pending' : 'Completed' },
-                        })}
-                        className="task-checkbox transition-all duration-200 flex-shrink-0 disabled:opacity-50"
-                        style={{
-                          backgroundColor: task.status === 'Completed' ? '#00bfff' : 'transparent',
-                          borderColor: task.status === 'Completed' ? '#00bfff' : '#666',
-                        }}
-                      >
-                        {task.status === 'Completed' && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        )}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className={`${task.status === 'Completed' ? 'text-secondary/40 line-through' : 'text-white'} font-bold text-sm leading-tight break-words`}>
-                          {task.title}
-                        </div>
-                        <div className="mt-1 flex items-center gap-2">
-                          {task.startTime && <span className="text-[0.65rem] text-secondary/40 font-bold">{task.startTime}</span>}
-                          {task.status === 'In Progress' && <span className="text-[0.6rem] text-accent font-black uppercase tracking-wider">In progress</span>}
-                          {task.status === 'Missed' && <span className="text-[0.6rem] text-red-300 font-black uppercase tracking-wider">Missed</span>}
-                        </div>
+                        });
+                      }}
+                      className="task-checkbox transition-all duration-200 flex-shrink-0 disabled:opacity-50"
+                      style={{
+                        backgroundColor: task.status === 'Completed' ? '#00bfff' : 'transparent',
+                        borderColor: task.status === 'Completed' ? '#00bfff' : '#71717a',
+                      }}
+                    >
+                      {task.status === 'Completed' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className={`${task.status === 'Completed' ? 'text-zinc-500 line-through' : 'text-white'} font-bold text-sm leading-tight break-words`}>
+                        {task.title}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        {task.startTime && <span className="text-[0.72rem] text-zinc-400 font-medium">{task.startTime}</span>}
+                        {task.status === 'In Progress' && <span className="text-[0.65rem] text-accent font-black uppercase tracking-wider">In progress</span>}
+                        {task.status === 'Missed' && <span className="text-[0.65rem] text-rose-400 font-black uppercase tracking-wider">Missed</span>}
                       </div>
                     </div>
-                    <span className="flex-shrink-0 text-[0.6rem] font-black px-2 py-1 rounded-lg uppercase tracking-wider text-secondary/60 bg-[#1a1a1a] border border-border/20">
-                      {task.category}
-                    </span>
                   </div>
-                ))
-              )}
-            </div>
-
-            {updateTaskMutation.isError && (
-              <div role="alert" className="py-3 border-t border-border/50 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-red-300">Couldn't update the task.</p>
-                {updateTaskMutation.variables && (
-                  <button
-                    type="button"
-                    onClick={() => updateTaskMutation.mutate(updateTaskMutation.variables)}
-                    className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-                  >
-                    Retry update
-                  </button>
-                )}
-              </div>
+                  <span className={`flex-shrink-0 text-[0.65rem] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider tag-${task.category?.toLowerCase() || 'personal'}`}>
+                    {task.category}
+                  </span>
+                </div>
+              ))
             )}
 
             {tasksQuery.data && tasksQuery.data.length > todayTasks.length && (
-              <div className="py-3 border-t border-border/50 text-center">
+              <div className="py-3 border-t border-white/5 text-center">
                 <Link to="/planner" className="text-xs font-bold text-accent hover:text-white transition-colors">
                   View all today's tasks
                 </Link>
@@ -324,51 +283,97 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="primary p-5 md:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="label-sub uppercase">Today's Habits</h2>
-              <p className="mt-2 text-xs text-secondary/50">A quick check-in on your daily routine.</p>
-            </div>
-            <Link to="/habits" className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white transition-colors">
+        {/* ── CARD 2: TODAY'S HABITS (Exact same structure, styling & consistency) ── */}
+        <Card className="primary !p-0 overflow-hidden bg-[#0c0c0e]">
+          <div className="px-4 md:px-6 py-3.5 bg-[#070709] border-b border-white/10 flex justify-between items-center gap-3">
+            <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Today's Habits</span>
+            <Link to="/habits" className="text-xs font-bold text-accent uppercase tracking-wider hover:text-white transition-colors">
               Open Habits
             </Link>
           </div>
 
-          {statsQuery.isLoading ? (
-            <div className="mt-6"><Skeleton height="56px" /></div>
-          ) : statsQuery.isError ? (
-            <div className="mt-6 flex flex-col items-start gap-3">
-              <p className="text-sm text-red-300">Today's habit summary couldn't be loaded.</p>
-              <button
-                type="button"
-                onClick={() => statsQuery.refetch()}
-                className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-              >
-                Retry summary
-              </button>
-            </div>
-          ) : !statsQuery.data ? (
-            <div className="mt-6 flex flex-col items-start gap-3">
-              <p className="text-sm text-red-300">Today's habit summary is unavailable.</p>
-              <button
-                type="button"
-                onClick={() => statsQuery.refetch()}
-                className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
-              >
-                Retry summary
-              </button>
-            </div>
-          ) : statsQuery.data.habitsTotal === 0 ? (
-            <p className="mt-6 text-sm text-secondary/60">
-              No habits yet. <Link to="/habits" className="font-bold text-accent hover:text-white">Create one</Link> to start a routine.
-            </p>
-          ) : (
-            <div className="mt-6 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">{statsQuery.data.habitsDone}</span>
-              <span className="text-sm text-secondary/60">of {statsQuery.data.habitsTotal} habits checked in</span>
-            </div>
-          )}
+          <div className="px-4 md:px-6">
+            {habitsQuery.isLoading ? (
+              <div className="py-6"><Skeleton height="150px" /></div>
+            ) : habitsQuery.isError ? (
+              <div className="py-6 flex flex-col items-center gap-3 text-center">
+                <p className="text-sm text-rose-300">Today's habits couldn't be loaded.</p>
+                <button
+                  type="button"
+                  onClick={() => habitsQuery.refetch()}
+                  className="text-xs font-black text-accent uppercase tracking-widest hover:text-white"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : todayHabits.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm font-bold text-white">No habits tracked for today</p>
+                <Link to="/habits" className="mt-2 inline-block text-xs font-bold text-accent hover:text-white transition-colors">
+                  Add a habit
+                </Link>
+              </div>
+            ) : (
+              todayHabits.map((habit) => {
+                const isDone = isHabitDoneToday(habit);
+                return (
+                  <div key={habit._id} className="flex justify-between items-center py-3 md:py-3.5 px-2 md:px-3 border-b border-white/5 last:border-0 gap-3 rounded-lg hover:bg-white/[0.03] transition-colors">
+                    <div className="flex items-center flex-1 min-w-0 gap-3">
+                      <button
+                        type="button"
+                        aria-label={isDone ? `Habit ${habit.name} completed today` : `Check in habit ${habit.name}`}
+                        disabled={markHabitMutation.isPending}
+                        onClick={(e) => {
+                          if (!isDone) {
+                            fireCelebration(e.clientX, e.clientY);
+                            markHabitMutation.mutate(habit._id);
+                          }
+                        }}
+                        className="task-checkbox transition-all duration-200 flex-shrink-0 disabled:opacity-50"
+                        style={{
+                          backgroundColor: isDone ? '#00bfff' : 'transparent',
+                          borderColor: isDone ? '#00bfff' : '#71717a',
+                        }}
+                      >
+                        {isDone && (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className={`${isDone ? 'text-zinc-500 line-through' : 'text-white'} font-bold text-sm leading-tight break-words`}>
+                          {habit.name}
+                        </div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={`text-[0.65rem] font-bold uppercase tracking-wider ${isDone ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                            {isDone ? 'Completed' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {habit.streak > 0 ? (
+                      <span className="flex-shrink-0 text-[0.65rem] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                        {habit.streak}d streak
+                      </span>
+                    ) : (
+                      <span className="flex-shrink-0 text-[0.65rem] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-white/5 border border-white/10 text-zinc-400">
+                        Daily
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+
+            {habitsQuery.data && habitsQuery.data.length > todayHabits.length && (
+              <div className="py-3 border-t border-white/5 text-center">
+                <Link to="/habits" className="text-xs font-bold text-accent hover:text-white transition-colors">
+                  View all habits
+                </Link>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
     </div>

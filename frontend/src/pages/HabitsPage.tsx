@@ -76,7 +76,7 @@ export default function HabitsPage() {
   const goalsQuery = useQuery<Goal[]>({
     queryKey: ['goals'],
     queryFn: fetchGoals,
-    staleTime: 0, // Always consider stale - refetch on invalidation
+    staleTime: 0,
     gcTime: 15 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -99,47 +99,29 @@ export default function HabitsPage() {
       setDraft('');
       toast.success('Habit added');
     },
-    onError: () => toast.error("Couldn't add the habit. Please try again."),
-  });
-
-  const deleteHabitMutation = useMutation({
-    mutationFn: deleteHabit,
-    onSuccess: async () => {
-      await invalidateHabitViews();
-      toast.success('Habit deleted');
-    },
-    onError: (error) => {
-      console.error('Habit delete failed:', error);
-      toast.error('Failed to delete habit. Please try again.');
-    }
+    onError: () => toast.error("Couldn't add habit. Please try again."),
   });
 
   const checkInMutation = useMutation({
     mutationFn: markHabitComplete,
-    onSuccess: async () => {
-      await invalidateHabitViews();
-      toast.success('Checked in! 🔥');
-    },
-    onError: (error) => {
-      console.error('Check in failed:', error);
-      toast.error('Failed to check in. Please try again.');
-    }
+    onSuccess: invalidateHabitViews,
+    onError: () => toast.error("Couldn't check in habit. Please try again."),
+  });
+
+  const deleteHabitMutation = useMutation({
+    mutationFn: deleteHabit,
+    onSuccess: invalidateHabitViews,
+    onError: () => toast.error("Couldn't delete habit. Please try again."),
   });
 
   const createGoalMutation = useMutation({
     mutationFn: createGoal,
-    onSuccess: async (goal) => {
-      queryClient.setQueryData<Goal[]>(['goals'], currentGoals =>
-        currentGoals ? [goal, ...currentGoals] : [goal]
-      );
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['goals'] });
       setGoalDraft('');
-      toast.success('Goal added');
+      toast.success('Goal saved');
     },
-    onError: (error) => {
-      console.error('Goal create failed:', error);
-      toast.error('Failed to add goal. Please try again.');
-    }
+    onError: () => toast.error('Failed to add goal. Please try again.'),
   });
 
   const deleteGoalMutation = useMutation({
@@ -151,10 +133,7 @@ export default function HabitsPage() {
       await queryClient.invalidateQueries({ queryKey: ['goals'] });
       toast.success('Goal deleted');
     },
-    onError: (error) => {
-      console.error('Goal delete failed:', error);
-      toast.error('Failed to delete goal. Please try again.');
-    }
+    onError: () => toast.error('Failed to delete goal. Please try again.'),
   });
 
   const [today, setToday] = useState(() => toLocalDateKey(new Date())!);
@@ -191,14 +170,21 @@ export default function HabitsPage() {
 
   return (
     <div className="page-stack">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <h1 className="title-main">Habits & Routine</h1>
-        <div className="tab-group flex gap-2 bg-[#000] p-1 rounded-xl border border-border">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="title-main">Habits & Routine</h1>
+          <p className="title-sub text-zinc-400">Build automatic behaviors through consistent daily practice.</p>
+        </div>
+        <div className="tab-group flex gap-1.5 bg-[#09090b] p-1.5 rounded-xl border border-white/10 self-start sm:self-auto">
           {(['Habits', 'Goals'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 md:flex-none px-6 py-1.5 rounded-lg text-[0.8rem] font-bold transition-all ${activeTab === tab ? 'bg-[#1a1a1a] text-white shadow-lg' : 'bg-transparent text-secondary hover:text-white'}`}
+              className={`px-5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                activeTab === tab
+                  ? 'bg-[#1c1c22] text-white shadow-md border border-white/10'
+                  : 'bg-transparent text-zinc-400 hover:text-white'
+              }`}
             >
               {tab}
             </button>
@@ -210,33 +196,33 @@ export default function HabitsPage() {
       {activeTab === 'Habits' && (
         <div className="split-layout">
           {/* Left: Habit manager */}
-          <div className="stack-gap-lg">
-            <Card className="primary p-4 md:p-6">
+          <div className="stack-gap-lg min-w-0">
+            <Card className="primary p-4 sm:p-6">
               {isLoading ? (
                 <div className="mb-6"><Skeleton height="116px" /></div>
               ) : (
-                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-border bg-[#090909] p-4">
-                    <span className="label-sub text-[0.65rem] uppercase tracking-[2px] text-secondary/50">Completed Today</span>
-                    <div className="mt-2 text-[2rem] font-black text-white">{habitsQuery.isError ? '—' : doneToday}</div>
-                    <div className="mt-2 text-[0.75rem] text-secondary/40">of {habitsQuery.isError ? '—' : habits.length} habits</div>
+                <div className="mb-6 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-[#09090b] p-4">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block">Completed Today</span>
+                    <div className="mt-1.5 text-2xl sm:text-3xl font-black text-white">{habitsQuery.isError ? '—' : doneToday}</div>
+                    <div className="mt-1 text-xs text-zinc-400 font-medium">of {habitsQuery.isError ? '—' : habits.length} habits</div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-[#090909] p-4">
-                    <span className="label-sub text-[0.65rem] uppercase tracking-[2px] text-secondary/50">Completion Rate</span>
-                    <div className="mt-2 text-[2rem] font-black text-white">{habitsQuery.isError ? '—' : `${completionRate}%`}</div>
-                    <div className="mt-2 text-[0.75rem] text-secondary/40">Today's habits completed</div>
+                  <div className="rounded-xl border border-white/10 bg-[#09090b] p-4">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block">Completion Rate</span>
+                    <div className="mt-1.5 text-2xl sm:text-3xl font-black text-white">{habitsQuery.isError ? '—' : `${completionRate}%`}</div>
+                    <div className="mt-1 text-xs text-zinc-400 font-medium">Today's habits completed</div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-[#090909] p-4">
-                    <span className="label-sub text-[0.65rem] uppercase tracking-[2px] text-secondary/50">Best Streak</span>
-                    <div className="mt-2 text-[2rem] font-black text-white">{habitsQuery.isError ? '—' : bestStreak}</div>
-                    <div className="mt-2 text-[0.75rem] text-secondary/40">Consecutive days</div>
+                  <div className="rounded-xl border border-white/10 bg-[#09090b] p-4">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block">Best Streak</span>
+                    <div className="mt-1.5 text-2xl sm:text-3xl font-black text-white">{habitsQuery.isError ? '—' : bestStreak}</div>
+                    <div className="mt-1 text-xs text-zinc-400 font-medium">Consecutive days</div>
                   </div>
                 </div>
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <input
-                  className="field-input !h-12 !text-[0.95rem] !px-4 !flex-1"
+                  className="field-input !h-12 !text-sm sm:!text-base !px-4 !flex-1 !bg-[#09090b] border border-white/10 hover:border-white/20 focus:border-accent text-white placeholder:text-zinc-500 rounded-xl"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && draft.trim() && !createMutation.isPending && createMutation.mutate(draft.trim())}
@@ -245,7 +231,7 @@ export default function HabitsPage() {
                 <Button
                   disabled={!draft.trim() || createMutation.isPending}
                   onClick={() => draft.trim() && createMutation.mutate(draft.trim())}
-                  className="!h-12 !w-full sm:!w-auto !px-8 !bg-accent !text-white !text-[0.8rem] !font-black !rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                  className="!h-12 !w-full sm:!w-auto !px-8 !bg-accent hover:!bg-accent/90 !text-white !text-xs sm:!text-sm !font-bold !rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 uppercase tracking-wider shadow-lg shadow-accent/25"
                 >
                   {createMutation.isPending ? 'ADDING...' : 'ADD HABIT'}
                 </Button>
@@ -253,24 +239,24 @@ export default function HabitsPage() {
             </Card>
 
             <Card className="primary !p-0 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 border-b border-border bg-[#050505] px-4 py-4 md:px-6">
-                <span className="label-sub uppercase !text-[0.65rem] tracking-[2px]">Your Habit List</span>
-                <span className="text-[0.75rem] text-secondary/40 uppercase tracking-[2px]">
-                  {habitsQuery.isError ? '—' : habits.length} items
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#070709] px-4 py-3.5 sm:px-6">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Your Habit List</span>
+                <span className="text-xs text-zinc-400 font-semibold">
+                  {habitsQuery.isError ? '—' : habits.length} {habits.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
-              <div className="p-4 md:p-6">
+              <div className="p-4 sm:p-6">
                 {isLoading ? (
                   <Skeleton height="200px" />
                 ) : habitsQuery.isError ? (
                   <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center">
-                    <p className="text-sm text-red-300">Your habits couldn't be loaded.</p>
+                    <p className="text-sm text-rose-300">Your habits couldn't be loaded.</p>
                     <button type="button" onClick={() => habitsQuery.refetch()} className="text-xs font-black uppercase tracking-widest text-accent hover:text-white">
                       Retry
                     </button>
                   </div>
                 ) : habits.length === 0 ? (
-                  <div className="py-10 text-center text-sm font-medium text-secondary/60">
+                  <div className="py-12 text-center text-sm font-medium text-zinc-400">
                     No habits yet. Add one above to start building a routine.
                   </div>
                 ) : (
@@ -282,29 +268,37 @@ export default function HabitsPage() {
                       return (
                         <div
                           key={habit._id}
-                          className={`flex min-w-0 flex-col gap-4 rounded-2xl border p-4 md:p-5 ${isCheckedToday ? 'border-[#06d6a0]/20 bg-[#06120e]' : 'border-[#111] bg-[#050505]/90'}`}
+                          className={`flex min-w-0 flex-col gap-3 sm:gap-4 rounded-xl border p-4 transition-all duration-200 ${
+                            isCheckedToday
+                              ? 'border-emerald-500/30 bg-emerald-950/15'
+                              : 'border-white/10 bg-[#09090b] hover:border-white/20'
+                          }`}
                         >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0">
-                              <div className={`break-words font-black text-[1rem] ${isCheckedToday ? 'text-[#06d6a0]' : 'text-white'}`}>
+                              <div className={`break-words font-bold text-base sm:text-lg ${isCheckedToday ? 'text-emerald-300' : 'text-white'}`}>
                                 {habit.name}
                               </div>
-                              <div className="text-[0.75rem] uppercase tracking-[2px] text-secondary/40 mt-1">
+                              <div className="text-xs font-semibold text-zinc-400 mt-0.5">
                                 {isCheckedToday ? 'Completed today' : 'Not completed today'}
                               </div>
                             </div>
                             {streak > 0 && (
-                              <div className="rounded-full bg-[#1a1a1a] px-3 py-1 text-[0.7rem] font-black uppercase tracking-[2px] text-[#06d6a0]">
+                              <div className="w-fit rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-0.5 text-xs font-bold text-emerald-300">
                                 {streak}d streak
                               </div>
                             )}
                           </div>
 
-                          <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                             <button
                               onClick={() => !isCheckedToday && checkInMutation.mutate(habit._id)}
                               disabled={isCheckedToday || checkInMutation.isPending}
-                              className={`min-h-11 min-w-[120px] rounded-xl px-5 py-3 text-[0.8rem] font-black uppercase tracking-widest ${isCheckedToday ? 'cursor-default border border-[#06d6a0]/20 bg-[#06d6a0]/10 text-[#06d6a0]' : 'bg-[#3a86ff] text-white hover:bg-[#2886ff] disabled:cursor-wait disabled:opacity-50'}`}
+                              className={`min-h-10 min-w-[120px] rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                                isCheckedToday
+                                  ? 'cursor-default border border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                                  : 'bg-accent hover:bg-accent/90 text-white shadow-md shadow-accent/20 active:scale-95 disabled:cursor-wait disabled:opacity-50'
+                              }`}
                               aria-label={isCheckedToday ? `${habit.name} completed today` : `Check in ${habit.name}`}
                             >
                               {isCheckedToday ? 'DONE' : checkInMutation.isPending ? 'SAVING...' : 'CHECK IN'}
@@ -312,10 +306,13 @@ export default function HabitsPage() {
                             <button
                               onClick={() => deleteHabitMutation.mutate(habit._id)}
                               disabled={deleteHabitMutation.isPending}
-                              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-secondary/60 hover:text-[#ef476f] disabled:cursor-wait disabled:opacity-50"
+                              className="flex min-h-10 min-w-10 items-center justify-center rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:cursor-wait disabled:opacity-50"
                               aria-label={`Delete ${habit.name}`}
                             >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                              </svg>
                             </button>
                           </div>
                         </div>
@@ -328,18 +325,18 @@ export default function HabitsPage() {
           </div>
 
           {/* Right: habit momentum */}
-          <div className="stack-gap-lg">
+          <div className="stack-gap-lg min-w-0">
             <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Longest Current Streak</span>
+              <span className="mb-2 uppercase text-xs font-bold tracking-wider text-zinc-300 block">Longest Current Streak</span>
               {habitsQuery.isLoading ? (
                 <Skeleton height="44px" />
               ) : habitsQuery.isError ? (
-                <p className="text-sm text-red-300">Streak data unavailable.</p>
+                <p className="text-sm text-rose-300">Streak data unavailable.</p>
               ) : (
                 <>
-                  <div className="mb-2 text-[2rem] font-black text-white">{bestStreak} days</div>
-                  <div className="text-[0.75rem] text-secondary/60">
-                {bestStreak > 0 ? 'Keep the streak alive' : 'Start building momentum'}
+                  <div className="mb-1 text-2xl sm:text-3xl font-black text-white">{bestStreak} days</div>
+                  <div className="text-xs text-zinc-400 font-medium">
+                    {bestStreak > 0 ? 'Keep the streak alive' : 'Start building momentum'}
                   </div>
                 </>
               )}
@@ -351,23 +348,23 @@ export default function HabitsPage() {
       {/* ── GOALS TAB ── */}
       {activeTab === 'Goals' && (
         <div className="split-layout">
-          <div className="stack-gap-lg">
-            <Card className="primary p-4 md:p-6">
-              <span className="mb-4 uppercase label-sub">Goal Progress</span>
+          <div className="stack-gap-lg min-w-0">
+            <Card className="primary p-4 sm:p-6">
+              <span className="mb-4 uppercase text-xs font-bold tracking-wider text-zinc-300 block">Goal Progress</span>
 
-              <div className="mt-4 mb-8 stack-gap-md">
+              <div className="mt-2 mb-6 stack-gap-md">
                 <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                   <input
-                    className="field-input !h-12 !text-[0.95rem] !px-4 !flex-1"
+                    className="field-input !h-12 !text-sm sm:!text-base !px-4 !flex-1 !bg-[#09090b] border border-white/10 hover:border-white/20 focus:border-accent text-white placeholder:text-zinc-500 rounded-xl"
                     value={goalDraft}
                     onChange={(e) => setGoalDraft(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && goalDraft.trim() && !createGoalMutation.isPending && createGoalMutation.mutate({ text: goalDraft.trim(), type: goalType })}
-                    placeholder="What is your main goal?"
+                    placeholder="What is your main goal or affirmation?"
                   />
                   <select
                     value={goalType}
                     onChange={(e) => setGoalType(e.target.value as 'goal' | 'affirmation')}
-                    className="field-input !h-12 !w-full !px-4 !text-[0.8rem] !font-black uppercase tracking-widest sm:!w-40"
+                    className="field-input !h-12 !w-full !px-4 text-xs font-bold uppercase tracking-wider sm:!w-44 !bg-[#09090b] border border-white/10 text-white rounded-xl"
                   >
                     <option value="goal">Goal</option>
                     <option value="affirmation">Affirmation</option>
@@ -377,7 +374,7 @@ export default function HabitsPage() {
                   <Button
                     onClick={() => goalDraft.trim() && createGoalMutation.mutate({ text: goalDraft.trim(), type: goalType })}
                     disabled={!goalDraft.trim() || createGoalMutation.isPending}
-                    className="!px-10 !py-3 !bg-accent !text-white !font-black !text-[0.8rem] !rounded-xl transition-all shadow-xl active:scale-95 uppercase tracking-widest"
+                    className="w-full sm:w-auto !px-8 !py-3 !bg-accent hover:!bg-accent/90 !text-white !font-bold !text-xs sm:!text-sm !rounded-xl transition-all shadow-lg shadow-accent/25 active:scale-95 uppercase tracking-wider"
                   >
                     {createGoalMutation.isPending ? 'SAVING...' : 'SAVE GOAL'}
                   </Button>
@@ -388,24 +385,24 @@ export default function HabitsPage() {
                 <Skeleton height="220px" />
               ) : goalsQuery.isError ? (
                 <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center">
-                  <p className="text-sm text-red-300">Your goals couldn't be loaded.</p>
+                  <p className="text-sm text-rose-300">Your goals couldn't be loaded.</p>
                   <button type="button" onClick={() => goalsQuery.refetch()} className="text-xs font-black uppercase tracking-widest text-accent hover:text-white">
                     Retry
                   </button>
                 </div>
               ) : goals.length === 0 ? (
-                <div className="py-16 text-center text-secondary/40 text-[0.9rem] font-bold italic">
-                  No objectives defined.
+                <div className="py-14 text-center text-zinc-400 text-sm font-medium">
+                  No objectives defined yet. Add one above to get started.
                 </div>
               ) : (
                 <div className="stack-gap-sm">
                   {goals.map((goal) => (
-                    <div key={goal._id} className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#111] bg-[#000] p-4 md:p-5">
-                      <div className="flex min-w-0 flex-col gap-1.5">
-                        <span className="break-words text-[1.05rem] font-black leading-tight text-white">{goal.text}</span>
+                    <div key={goal._id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#09090b] p-4 hover:border-white/20 transition-all">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <span className="break-words text-base font-bold text-white">{goal.text}</span>
                         <div className="flex items-center gap-2">
-                           <span className={`w-1.5 h-1.5 rounded-full ${goal.type === 'goal' ? 'bg-[#06d6a0]' : 'bg-[#ffd166]'}`} />
-                           <span className="text-[0.6rem] text-secondary font-black uppercase tracking-[2px]">{goal.type}</span>
+                          <span className={`w-2 h-2 rounded-full ${goal.type === 'goal' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                          <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">{goal.type}</span>
                         </div>
                       </div>
                       <button
@@ -416,9 +413,12 @@ export default function HabitsPage() {
                         }}
                         disabled={deleteGoalMutation.isPending}
                         aria-label={`Delete ${goal.type}: ${goal.text}`}
-                        className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg p-2 text-secondary/60 hover:text-[#ef476f] disabled:cursor-wait disabled:opacity-50"
+                        className="flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg p-2 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:cursor-wait disabled:opacity-50"
                       >
-                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
                       </button>
                     </div>
                   ))}
@@ -427,23 +427,23 @@ export default function HabitsPage() {
             </Card>
           </div>
 
-          <div className="stack-gap-lg">
+          <div className="stack-gap-lg min-w-0">
             <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Active Goals</span>
-              <div className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{isGoalsLoading || goalsQuery.isError ? '—' : goalStats.goals}</div>
-              <div className="text-[0.65rem] font-black text-[#06d6a0] uppercase tracking-widest mt-2">Working on these</div>
+              <span className="mb-2 uppercase text-xs font-bold tracking-wider text-zinc-300 block">Active Goals</span>
+              <div className="text-2xl sm:text-3xl font-black text-white">{isGoalsLoading || goalsQuery.isError ? '—' : goalStats.goals}</div>
+              <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mt-1">Working on these</div>
             </Card>
 
             <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Daily Affirmations</span>
-              <div className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{isGoalsLoading || goalsQuery.isError ? '—' : goalStats.affirmations}</div>
-              <div className="text-[0.65rem] font-black text-[#ffd166] uppercase tracking-widest mt-2">Positive Mindset</div>
+              <span className="mb-2 uppercase text-xs font-bold tracking-wider text-zinc-300 block">Daily Affirmations</span>
+              <div className="text-2xl sm:text-3xl font-black text-white">{isGoalsLoading || goalsQuery.isError ? '—' : goalStats.affirmations}</div>
+              <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider mt-1">Positive Mindset</div>
             </Card>
 
             <Card className="primary compact-card">
-              <span className="mb-4 uppercase label-sub">Total Objectives</span>
-              <div className="text-[2.8rem] font-black text-white tracking-tighter leading-none">{isGoalsLoading || goalsQuery.isError ? '—' : goalStats.total}</div>
-              <div className="text-[0.65rem] font-black text-accent uppercase tracking-widest mt-2">Total items</div>
+              <span className="mb-2 uppercase text-xs font-bold tracking-wider text-zinc-300 block">Total Objectives</span>
+              <div className="text-2xl sm:text-3xl font-black text-white">{isGoalsLoading || goalsQuery.isError ? '—' : goalStats.total}</div>
+              <div className="text-xs font-semibold text-accent uppercase tracking-wider mt-1">Total items</div>
             </Card>
           </div>
         </div>

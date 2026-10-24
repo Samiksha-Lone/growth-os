@@ -54,25 +54,25 @@ const utilityLinks = [
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { signOut, userEmail, githubUrl, linkedinUrl, portfolioUrl } = useAuth();
+  const { signOut, githubUrl, linkedinUrl, portfolioUrl } = useAuth();
 
   return (
-    <aside className="bg-card border-r border-border p-5 flex flex-col gap-8 sticky top-0 h-dvh min-h-0 w-[280px] overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 border border-border flex items-center justify-center rounded-xl bg-[#0a0a0a] shadow-inner overflow-hidden">
+    <aside className="bg-[#0c0c0e] border-r border-white/10 p-5 flex flex-col gap-6 sticky top-0 h-dvh min-h-0 w-[280px] overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between px-3">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 border border-white/10 flex items-center justify-center rounded-xl bg-[#09090b] shadow-inner overflow-hidden">
             <Logo />
           </div>
           <div className="flex flex-col">
-            <span className="text-[1.1rem] font-black text-white tracking-tight leading-none">GrowthOS</span>
-            <span className="text-[0.7rem] text-secondary font-black uppercase tracking-widest mt-1">Focus system</span>
+            <span className="text-lg font-black text-white tracking-tight leading-none">GrowthOS</span>
+            <span className="text-[0.65rem] text-zinc-400 font-bold uppercase tracking-widest mt-1">Focus system</span>
           </div>
         </div>
 
         {/* Close Button for Mobile */}
         <button
           onClick={onClose}
-          className="md:hidden p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors text-secondary hover:text-white"
+          className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors text-zinc-400 hover:text-white"
           aria-label="Close menu"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -82,7 +82,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </button>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
+      <nav className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-1">
         <div className="space-y-1">
           {mainLinks.map((link) => (
             <NavLink
@@ -90,12 +90,16 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
               to={link.to}
               onClick={onClose}
               className={({ isActive }) =>
-                `group flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-[0.9rem] font-bold transition-all duration-300 border ${isActive ? 'bg-[#1a1a1a] border-border text-white shadow-lg' : 'border-transparent text-secondary hover:text-white hover:bg-[#111]'}`
+                `group flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 border ${
+                  isActive
+                    ? 'bg-[#1c1c22] border-white/10 text-white shadow-md'
+                    : 'border-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={`inline-flex items-center transition-all duration-300 ${isActive ? 'text-accent scale-110' : 'text-secondary/50 group-hover:text-secondary'}`}>
+                  <span className={`inline-flex items-center transition-all duration-200 ${isActive ? 'text-accent scale-110' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
                     {link.icon}
                   </span>
                   <span>{link.label}</span>
@@ -106,20 +110,24 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         </div>
       </nav>
 
-      <div className="mt-auto shrink-0">
-        <div className="space-y-1 pt-6 border-t border-border">
+      <div className="mt-auto shrink-0 pt-4 border-t border-white/10">
+        <div className="space-y-1">
           {utilityLinks.map((link) => (
             <NavLink
               key={link.label}
               to={link.to}
               onClick={onClose}
               className={({ isActive }) =>
-                `group flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-[0.9rem] font-bold transition-all duration-300 border ${isActive ? 'bg-[#1a1a1a] border-border text-white shadow-lg' : 'border-transparent text-secondary hover:text-white hover:bg-[#111]'}`
+                `group flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 border ${
+                  isActive
+                    ? 'bg-[#1c1c22] border-white/10 text-white shadow-md'
+                    : 'border-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={`inline-flex items-center transition-all duration-300 ${isActive ? 'text-accent scale-110' : 'text-secondary/50 group-hover:text-secondary'}`}>
+                  <span className={`inline-flex items-center transition-all duration-200 ${isActive ? 'text-accent scale-110' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
                     {link.icon}
                   </span>
                   <span>{link.label}</span>
@@ -129,30 +137,30 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           ))}
           <button
             onClick={signOut}
-            className="w-full group flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-[0.9rem] font-bold transition-all duration-300 border border-transparent text-secondary hover:text-red-500 hover:bg-red-500/05 cursor-pointer"
+            className="w-full group flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 border border-transparent text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
           >
-            <span className="inline-flex items-center transition-all duration-300 text-secondary/50 group-hover:text-red-400">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span className="inline-flex items-center transition-all duration-200 text-zinc-500 group-hover:text-rose-400">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             </span>
             <span>Logout</span>
           </button>
         </div>
 
         {(githubUrl || linkedinUrl || portfolioUrl) && (
-          <div className="mt-6 pt-6 border-t border-border flex items-center gap-5 justify-center">
+          <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-5 justify-center">
             {githubUrl && (
-              <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-secondary/60 transition-all duration-300 hover:text-white hover:scale-110">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path></svg>
+              <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" aria-label="GitHub Profile">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path></svg>
               </a>
             )}
             {linkedinUrl && (
-              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-secondary/60 transition-all duration-300 hover:text-white hover:scale-110">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" aria-label="LinkedIn Profile">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
               </a>
             )}
             {portfolioUrl && (
-              <a href={portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-secondary/60 transition-all duration-300 hover:text-white hover:scale-110">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              <a href={portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" aria-label="Portfolio">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
               </a>
             )}
           </div>
