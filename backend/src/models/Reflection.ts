@@ -5,8 +5,9 @@ export interface IReflection extends Document {
   goodThings: string[];
   badThings: string[];
   learnings: string[];
-  mood: number; // 1-3
-  productivityScore: number; // 1-10
+  notes?: string;
+  mood?: number | null; // 1-3
+  productivityScore?: number; // 1-10; retained for legacy analytics records
   userId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -29,17 +30,20 @@ const reflectionSchema = new Schema<IReflection>({
     type: String,
     trim: true,
   }],
+  notes: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   mood: {
     type: Number,
     min: 1,
     max: 3,
-    required: true,
   },
   productivityScore: {
     type: Number,
     min: 1,
     max: 10,
-    required: true,
   },
   userId: {
     type: Schema.Types.ObjectId,

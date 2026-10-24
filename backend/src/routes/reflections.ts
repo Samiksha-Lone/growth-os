@@ -20,4 +20,7 @@ router.get('/:date', ReflectionController.getReflectionByDate);
 // PUT /api/reflections/:id
 router.put('/:id', ReflectionController.updateReflection);
 
+// DELETE /api/reflections/:id
+router.delete('/:id', ReflectionController.deleteReflection);
+
 export default router;

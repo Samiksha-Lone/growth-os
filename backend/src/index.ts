@@ -17,6 +17,7 @@ import analyticsRoutes from './routes/analytics';
 import insightsRoutes from './routes/insights';
 import realityCheckRoutes from './routes/realityCheck';
 import dashboardRoutes from './routes/dashboard';
+import historyRoutes from './routes/history';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
@@ -84,6 +85,7 @@ app.use('/uploads', (req, res, next) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/history', historyRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/reflections', reflectionRoutes);
 app.use('/api/habits', habitRoutes);

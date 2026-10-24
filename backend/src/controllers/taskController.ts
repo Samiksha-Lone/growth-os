@@ -3,14 +3,35 @@ import { TaskService } from '../services/taskService';
 import { invalidateDashboardCache } from '../utils/cache';
 import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
+import { localDateKey } from '../utils/dateHelpers';
+
+const localDateSchema = Joi.string()
+  .custom((value, helpers) => {
+    const dateKey = value.slice(0, 10);
+    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    const isIsoDateTime = /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value));
+    const parsed = new Date(`${dateKey}T00:00:00.000Z`);
+    if ((!isDateOnly && !isIsoDateTime) || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dateKey) {
+      return helpers.error('date.format');
+    }
+    return dateKey;
+  }, 'valid local calendar date');
 
 const createTaskSchema = Joi.object({
   title: Joi.string().required(),
   description: Joi.string().allow('').optional(),
   category: Joi.string().valid('Work', 'Study', 'Health', 'Personal').default('Personal'),
   priority: Joi.string().valid('High', 'Medium', 'Low').default('Medium'),
+  priorityClassification: Joi.string().valid(
+    'urgent-important',
+    'important-not-urgent',
+    'urgent-not-important',
+    'neither'
+  ).default('important-not-urgent'),
   status: Joi.string().valid('Pending', 'In Progress', 'Completed', 'Missed').default('Pending'),
-  date: Joi.date().default(() => new Date()).description('current date'),
+  date: localDateSchema.default(() => localDateKey(new Date())).description('local calendar date'),
+  dueDate: localDateSchema.optional(),
+  estimatedDurationMinutes: Joi.number().integer().min(1).max(1440).optional(),
   notes: Joi.string().allow('').default(''),
   startTime: Joi.string().allow('').optional(),
 });
@@ -20,8 +41,16 @@ const updateTaskSchema = Joi.object({
   description: Joi.string(),
   category: Joi.string().valid('Work', 'Study', 'Health', 'Personal'),
   priority: Joi.string().valid('High', 'Medium', 'Low'),
+  priorityClassification: Joi.string().valid(
+    'urgent-important',
+    'important-not-urgent',
+    'urgent-not-important',
+    'neither'
+  ),
   status: Joi.string().valid('Pending', 'In Progress', 'Completed', 'Missed'),
-  date: Joi.date(),
+  date: localDateSchema,
+  dueDate: localDateSchema.allow(null),
+  estimatedDurationMinutes: Joi.number().integer().min(1).max(1440).allow(null),
   notes: Joi.string(),
   startTime: Joi.string().allow('').optional(),
 });

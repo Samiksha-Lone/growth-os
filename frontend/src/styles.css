@@ -16,6 +16,7 @@
 
   html, body, #root {
     @apply min-h-screen;
+    overflow-x: hidden;
   }
 
   body {
@@ -62,12 +63,17 @@
 @layer components {
   /* Layout Shell */
   .app-shell {
-    @apply grid min-h-screen;
+    @apply grid;
     grid-template-columns: 280px 1fr;
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .app-content {
-    @apply flex flex-col w-full max-w-[1600px] mx-auto min-w-0;
+    @apply flex flex-col w-full min-w-0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100dvh;
   }
 
   .page-grid {
@@ -188,12 +194,22 @@
 
 /* --- Mobile Specific Overrides --- */
 @media (max-width: 1120px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-  
   .split-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-content {
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 
@@ -214,6 +230,16 @@
   .reflection-metrics {
     @apply grid-cols-1 !important;
     @apply gap-4 py-4;
+  }
+
+  /* Ensure page content doesn't overflow on small screens */
+  .page-grid {
+    @apply p-3;
+  }
+
+  /* Cards should not overflow */
+  .card {
+    @apply overflow-x-hidden;
   }
 }
 

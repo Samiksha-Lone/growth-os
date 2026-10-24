@@ -1,23 +1,26 @@
 import { Response, NextFunction } from 'express';
 import { ReflectionService } from '../services/reflectionService';
+import { localDateKey } from '../utils/dateHelpers';
 import { parseLocalDate } from '../utils/dateUtils';
 import Joi from 'joi';
 import { AuthenticatedRequest } from '../types';
 
 const createReflectionSchema = Joi.object({
-  date: Joi.date().required(),
-  goodThings: Joi.array().items(Joi.string()).required(),
-  badThings: Joi.array().items(Joi.string()).required(),
-  learnings: Joi.array().items(Joi.string()).required(),
-  mood: Joi.number().min(1).max(3).required(),
-  productivityScore: Joi.number().min(1).max(10).required(),
+  date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+  goodThings: Joi.array().items(Joi.string()).default([]),
+  badThings: Joi.array().items(Joi.string()).default([]),
+  learnings: Joi.array().items(Joi.string()).default([]),
+  notes: Joi.string().max(10000).allow(''),
+  mood: Joi.number().min(1).max(3).allow(null),
+  productivityScore: Joi.number().min(1).max(10),
 });
 
 const updateReflectionSchema = Joi.object({
   goodThings: Joi.array().items(Joi.string()),
   badThings: Joi.array().items(Joi.string()),
   learnings: Joi.array().items(Joi.string()),
-  mood: Joi.number().min(1).max(3),
+  notes: Joi.string().max(10000).allow(''),
+  mood: Joi.number().min(1).max(3).allow(null),
   productivityScore: Joi.number().min(1).max(10),
 });
 
@@ -30,9 +33,15 @@ export class ReflectionController {
         return;
       }
 
+      const date = parseLocalDate(req.body.date);
+      if (localDateKey(date) !== req.body.date) {
+        res.status(400).json({ message: 'Validation error', errors: ['Date must be a valid local calendar date'] });
+        return;
+      }
+
       const reflectionData = {
         ...req.body,
-        date: parseLocalDate(req.body.date),
+        date,
         userId: req.user._id,
       };
       const reflection = await ReflectionService.createReflection(reflectionData);
@@ -88,6 +97,20 @@ export class ReflectionController {
       }
 
       res.json({ message: 'Reflection updated successfully', reflection });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  static async deleteReflection(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const deleted = await ReflectionService.deleteReflection(req.params.id as string, req.user._id);
+      if (!deleted) {
+        res.status(404).json({ message: 'Journal entry not found' });
+        return;
+      }
+
+      res.json({ message: 'Journal entry deleted successfully' });
     } catch (error: any) {
       next(error);
     }

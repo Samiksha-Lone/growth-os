@@ -3,9 +3,9 @@ import { useAuth } from './hooks/useAuth';
 import { AppShell } from './components/ui/AppShell';
 import DashboardPage from './pages/DashboardPage';
 import PlannerPage from './pages/PlannerPage';
-import ReflectionPage from './pages/ReflectionPage';
+import JournalPage from './pages/JournalPage';
 import HabitsPage from './pages/HabitsPage';
-import AnalyticsPage from './pages/AnalyticsPage';
+import GoalsPage from './pages/GoalsPage';
 import InsightsPage from './pages/InsightsPage';
 import RealityCheckPage from './pages/RealityCheckPage';
 import SettingsPage from './pages/SettingsPage';
@@ -15,9 +15,10 @@ import HistoryPage from './pages/HistoryPage';
 const protectedRoutes = [
   { path: '/dashboard', element: <DashboardPage /> },
   { path: '/planner', element: <PlannerPage /> },
-  { path: '/reflection', element: <ReflectionPage /> },
+  { path: '/journal', element: <JournalPage /> },
   { path: '/habits', element: <HabitsPage /> },
-  { path: '/analytics', element: <AnalyticsPage /> },
+  { path: '/goals', element: <GoalsPage /> },
+  { path: '/analytics', element: <Navigate to="/insights" replace /> },
   { path: '/insights', element: <InsightsPage /> },
   { path: '/reality-check', element: <RealityCheckPage /> },
   { path: '/settings', element: <SettingsPage /> },
@@ -39,6 +40,7 @@ function App() {
         {protectedRoutes.map((route) => (
           <Route key={route.path} path={route.path.slice(1)} element={route.element} />
         ))}
+        <Route path="reflection" element={<Navigate to="/journal" replace />} />
         <Route path="" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

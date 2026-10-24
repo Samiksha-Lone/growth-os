@@ -12,17 +12,39 @@ export class ReflectionService {
     });
 
     if (existing) {
-      existing.date = date;
-      existing.goodThings = reflectionData.goodThings ?? [];
-      existing.badThings = reflectionData.badThings ?? [];
-      existing.learnings = reflectionData.learnings ?? [];
-      existing.mood = reflectionData.mood!;
-      existing.productivityScore = reflectionData.productivityScore!;
+      existing.goodThings = reflectionData.goodThings ?? existing.goodThings;
+      existing.badThings = reflectionData.badThings ?? existing.badThings;
+      existing.learnings = reflectionData.learnings ?? existing.learnings;
+      if (reflectionData.notes !== undefined) existing.notes = reflectionData.notes;
+      if (reflectionData.mood !== undefined) existing.mood = reflectionData.mood;
+      if (reflectionData.productivityScore !== undefined) existing.productivityScore = reflectionData.productivityScore;
       return existing.save();
     }
 
     const reflection = new Reflection({ ...reflectionData, date });
-    return reflection.save();
+    try {
+      return await reflection.save();
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 11000) {
+        throw error;
+      }
+
+      const concurrentEntry = await Reflection.findOne({
+        userId: reflectionData.userId,
+        date: { $gte: startOfDay, $lt: endOfDay },
+      });
+      if (!concurrentEntry) throw error;
+
+      concurrentEntry.goodThings = reflectionData.goodThings ?? concurrentEntry.goodThings;
+      concurrentEntry.badThings = reflectionData.badThings ?? concurrentEntry.badThings;
+      concurrentEntry.learnings = reflectionData.learnings ?? concurrentEntry.learnings;
+      if (reflectionData.notes !== undefined) concurrentEntry.notes = reflectionData.notes;
+      if (reflectionData.mood !== undefined) concurrentEntry.mood = reflectionData.mood;
+      if (reflectionData.productivityScore !== undefined) {
+        concurrentEntry.productivityScore = reflectionData.productivityScore;
+      }
+      return concurrentEntry.save();
+    }
   }
 
   static async getReflectionByDate(userId: string, date: string): Promise<IReflection | null> {
@@ -54,5 +76,10 @@ export class ReflectionService {
       updates,
       { new: true, runValidators: true }
     );
+  }
+
+  static async deleteReflection(reflectionId: string, userId: string): Promise<boolean> {
+    const result = await Reflection.findOneAndDelete({ _id: reflectionId, userId });
+    return result !== null;
   }
 }

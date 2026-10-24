@@ -21,7 +21,7 @@ export class AuthService {
     const user = new User({ name, email, password });
     await user.save();
 
-    const token = this.generateToken(user._id.toString());
+    const token = this.generateToken(user._id.toString(), user.tokenVersion ?? 0);
     return { user, token };
   }
 
@@ -36,11 +36,28 @@ export class AuthService {
       throw new HttpError('Invalid credentials', 401);
     }
 
-    const token = this.generateToken(user._id.toString());
+    const token = this.generateToken(user._id.toString(), user.tokenVersion ?? 0);
     return { user, token };
   }
 
-  private static generateToken(userId: string): string {
-    return jwt.sign({ userId }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+  static async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ token: string }> {
+    const user = await User.findById(userId);
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      throw new HttpError('Current password is incorrect', 400);
+    }
+
+    user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+    await user.save();
+
+    return { token: this.generateToken(user._id.toString(), user.tokenVersion) };
+  }
+
+  private static generateToken(userId: string, tokenVersion = 0): string {
+    return jwt.sign({ userId, tokenVersion }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
   }
 }

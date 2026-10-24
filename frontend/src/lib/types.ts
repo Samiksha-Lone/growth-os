@@ -4,8 +4,11 @@ export interface Task {
   description?: string;
   category: 'Work' | 'Study' | 'Health' | 'Personal';
   priority: 'High' | 'Medium' | 'Low';
+  priorityClassification?: EisenhowerQuadrant;
   status: 'Pending' | 'In Progress' | 'Completed' | 'Missed';
   date: string;
+  dueDate?: string | null;
+  estimatedDurationMinutes?: number | null;
   notes?: string;
   userId: string;
   createdAt: string;
@@ -13,6 +16,12 @@ export interface Task {
   startTime?: string;
   skippedReason?: string;
 }
+
+export type EisenhowerQuadrant =
+  | 'urgent-important'
+  | 'important-not-urgent'
+  | 'urgent-not-important'
+  | 'neither';
 
 export interface Habit {
   _id: string;
@@ -33,8 +42,9 @@ export interface Reflection {
   goodThings: string[];
   badThings: string[];
   learnings: string[];
-  mood: number;
-  productivityScore: number;
+  notes?: string;
+  mood?: number | null;
+  productivityScore?: number;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -94,6 +104,103 @@ export interface DashboardStats {
   weeklyTrend?: Array<{ day: string; value: number }>;
 }
 
+export interface ProductivityReport {
+  range: { startDate: string; endDate: string };
+  today: {
+    plannedTasks: number;
+    completedTasks: number;
+    completionRate: number | null;
+    missedTasks: number;
+    unfinishedTasks: number;
+    overdueTasks: number;
+    dueHabits: number;
+    completedHabits: number;
+  };
+  tasks: {
+    planned: number;
+    completed: number;
+    completionRate: number | null;
+    missed: number;
+    unfinished: number;
+    overdue: number;
+  };
+  habits: {
+    completedHabitDays: number;
+    eligibleHabitDays: number;
+    completionRate: number | null;
+    daily: Array<{ date: string; completed: number; eligible: number; completionRate: number | null }>;
+    performance: Array<{
+      id: string;
+      name: string;
+      completedDays: number;
+      eligibleDays: number;
+      completionRate: number | null;
+      currentStreak: number;
+      bestStreak: number;
+      sufficientData: boolean;
+    }>;
+  };
+  dailyTasks: Array<{
+    date: string;
+    planned: number;
+    completed: number;
+    completionRate: number | null;
+    missed: number;
+    unfinished: number;
+    overdue: number;
+  }>;
+  categories: Array<{
+    category: string;
+    planned: number;
+    completed: number;
+    completionRate: number | null;
+    missed: number;
+    unfinished: number;
+  }>;
+  goals: {
+    savedGoals: number;
+    affirmations: number;
+    createdInRange: number;
+    items: Array<{ id: string; text: string; type: 'goal' | 'affirmation'; createdAt: string }>;
+    tracksCompletion: false;
+  };
+  journal: {
+    entries: number;
+    moodAverage: number | null;
+    moods: Array<{ date: string; mood: number }>;
+    items: Array<{ date: string; mood: number | null; goodThings: string[]; badThings: string[]; learnings: string[]; notes?: string }>;
+  };
+}
+
+export type HistoryRecordType = 'task' | 'habit' | 'goal' | 'affirmation' | 'journal';
+export type HistoryTaskStatus = 'Pending' | 'In Progress' | 'Completed' | 'Missed';
+
+export interface HistoryEvent {
+  id: string;
+  type: HistoryRecordType;
+  date: string;
+  sortTimestamp: number;
+  title: string;
+  detail?: string;
+  status?: HistoryTaskStatus;
+  plannedDate?: string;
+  dueDate?: string;
+  category?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  mood?: number | null;
+  goodThings?: string[];
+  badThings?: string[];
+  learnings?: string[];
+  notes?: string;
+}
+
+export interface HistoryPageResult {
+  events: HistoryEvent[];
+  hasMore: boolean;
+  nextSkip: number;
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -101,4 +208,8 @@ export interface UserProfile {
   linkedinUrl?: string;
   portfolioUrl?: string;
   avatarUrl?: string;
+}
+
+export interface PasswordChangeResponse {
+  token: string;
 }

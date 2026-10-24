@@ -6,3 +6,19 @@ export const habitQueryKey = (limit = 50, skip = 0) =>
 
 export const dashboardStatsQueryKey = (date: string) =>
   ['dashboard', 'stats', date] as const;
+
+export const productivityReportQueryKey = ['analytics', 'report'] as const;
+
+export interface HistoryQueryFilters {
+  types: string[];
+  search: string;
+  startDate: string;
+  endDate: string;
+  taskStatus: string;
+}
+
+export const historyQueryKey = (filters: HistoryQueryFilters) =>
+  ['history', {
+    ...filters,
+    types: [...filters.types].sort(),
+  }] as const;

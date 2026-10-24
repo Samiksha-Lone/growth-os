@@ -14,7 +14,7 @@ const mainLinks = [
     )
   },
   {
-    to: '/reflection', label: 'Reflection', icon: (
+    to: '/journal', label: 'Journal', icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
     )
   },
@@ -24,13 +24,18 @@ const mainLinks = [
     )
   },
   {
-    to: '/insights', label: 'Insights', icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+    to: '/goals', label: 'Goals', icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
     )
   },
   {
-    to: '/analytics', label: 'Analytics', icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+    to: '/reality-check', label: 'Reality Check', icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
+    )
+  },
+  {
+    to: '/insights', label: 'Insights & Analytics', icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
     )
   },
   {
@@ -42,11 +47,6 @@ const mainLinks = [
 
 const utilityLinks = [
   {
-    to: '/reality-check', label: 'Reality Check', icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
-    )
-  },
-  {
     to: '/settings', label: 'Profile', icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
     )
@@ -54,7 +54,7 @@ const utilityLinks = [
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const { signOut, githubUrl, linkedinUrl, portfolioUrl } = useAuth();
+  const { signOut } = useAuth();
 
   return (
     <aside className="bg-[#0c0c0e] border-r border-white/10 p-5 flex flex-col gap-6 sticky top-0 h-dvh min-h-0 w-[280px] overflow-hidden">
@@ -146,25 +146,6 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           </button>
         </div>
 
-        {(githubUrl || linkedinUrl || portfolioUrl) && (
-          <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-5 justify-center">
-            {githubUrl && (
-              <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" aria-label="GitHub Profile">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7a3.37 3.37 0 0 0-.94 2.58V22"></path></svg>
-              </a>
-            )}
-            {linkedinUrl && (
-              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" aria-label="LinkedIn Profile">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
-              </a>
-            )}
-            {portfolioUrl && (
-              <a href={portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-400 transition-all duration-200 hover:text-white hover:scale-110" aria-label="Portfolio">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              </a>
-            )}
-          </div>
-        )}
       </div>
     </aside>
   );

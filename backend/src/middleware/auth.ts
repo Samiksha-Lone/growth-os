@@ -15,10 +15,10 @@ const auth = async (req: AuthRequest, res: Response, next: NextFunction): Promis
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string; tokenVersion?: number };
     const user = await User.findById(decoded.userId);
 
-    if (!user) {
+    if (!user || (decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
       res.status(401).json({ message: 'Invalid token' });
       return;
     }

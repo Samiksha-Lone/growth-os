@@ -148,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUser = (updates: Partial<AuthContextValue>) => {
+    if (updates.token !== undefined) setToken(updates.token);
     if (updates.userName) setUserName(updates.userName);
     if (updates.userEmail) setUserEmail(updates.userEmail);
     if (updates.githubUrl !== undefined) setGithubUrl(updates.githubUrl);

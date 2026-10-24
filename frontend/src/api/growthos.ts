@@ -1,5 +1,5 @@
 import api from './axios';
-import type { DashboardStats, Goal, Habit, AdvancedAnalytics, Reflection, RealitySummary, Task, UserProfile } from '../lib/types';
+import type { DashboardStats, Goal, Habit, AdvancedAnalytics, HistoryPageResult, HistoryRecordType, HistoryTaskStatus, Reflection, ProductivityReport, RealitySummary, Task, UserProfile, PasswordChangeResponse } from '../lib/types';
 import { localDateKey } from '../lib/dateUtils';
 
 export async function fetchDashboardStats(date?: string): Promise<DashboardStats> {
@@ -22,15 +22,28 @@ export async function fetchTasks(date?: string, limit: number = 20, skip: number
   return response.data.tasks || [];
 }
 
+export async function fetchAllTasks(date: string, pageSize: number = 100): Promise<Task[]> {
+  const tasks: Task[] = [];
+
+  for (let skip = 0; ; skip += pageSize) {
+    const page = await fetchTasks(date, pageSize, skip);
+    tasks.push(...page);
+    if (page.length < pageSize) return tasks;
+  }
+}
+
 export async function createTask(taskData: Partial<Task>): Promise<Task> {
   const payload = {
     title: taskData.title,
     description: taskData.description || '',
     category: taskData.category || 'Personal',
     priority: taskData.priority || 'Medium',
+    priorityClassification: taskData.priorityClassification || 'important-not-urgent',
     status: taskData.status || 'Pending',
     date: taskData.date || new Date().toLocaleDateString('en-CA'),
     notes: taskData.notes || '',
+    dueDate: taskData.dueDate || undefined,
+    estimatedDurationMinutes: taskData.estimatedDurationMinutes || undefined,
   };
 
   try {
@@ -56,9 +69,29 @@ export async function fetchHabits(limit: number = 50, skip: number = 0): Promise
   return habits;
 }
 
+export async function fetchAllHabits(pageSize: number = 100): Promise<Habit[]> {
+  const habits: Habit[] = [];
+
+  for (let skip = 0; ; skip += pageSize) {
+    const page = await fetchHabits(pageSize, skip);
+    habits.push(...page);
+    if (page.length < pageSize) return habits;
+  }
+}
+
 export async function fetchReflections(limit: number = 30, skip: number = 0): Promise<Reflection[]> {
   const response = await api.get('/reflections', { params: { limit, skip } });
   return response.data.reflections || [];
+}
+
+export async function fetchAllReflections(pageSize: number = 100): Promise<Reflection[]> {
+  const reflections: Reflection[] = [];
+
+  for (let skip = 0; ; skip += pageSize) {
+    const page = await fetchReflections(pageSize, skip);
+    reflections.push(...page);
+    if (page.length < pageSize) return reflections;
+  }
 }
 
 export async function createReflection(reflection: Partial<Reflection>): Promise<Reflection> {
@@ -74,6 +107,10 @@ export async function createReflection(reflection: Partial<Reflection>): Promise
 export async function updateReflection(reflectionId: string, updates: Partial<Reflection>): Promise<Reflection> {
   const response = await api.put(`/reflections/${reflectionId}`, updates);
   return response.data.reflection;
+}
+
+export async function deleteReflection(reflectionId: string): Promise<void> {
+  await api.delete(`/reflections/${reflectionId}`);
 }
 
 export async function fetchInsights(date?: string): Promise<AdvancedAnalytics> {
@@ -108,6 +145,60 @@ export async function fetchInsights(date?: string): Promise<AdvancedAnalytics> {
     },
     summary: data.summary,
   };
+}
+
+export async function fetchProductivityReport(startDate: string, endDate: string): Promise<ProductivityReport> {
+  const response = await api.get('/analytics/report', { params: { startDate, endDate } });
+  const report = response.data as ProductivityReport;
+  if (
+    report?.range?.startDate !== startDate ||
+    report?.range?.endDate !== endDate ||
+    !Array.isArray(report.dailyTasks) ||
+    !Array.isArray(report.habits?.daily) ||
+    !Array.isArray(report.habits?.performance) ||
+    !Array.isArray(report.categories) ||
+    !Array.isArray(report.goals?.items) ||
+    !Array.isArray(report.journal?.items)
+  ) {
+    throw new Error('Insights report response was incomplete.');
+  }
+  return report;
+}
+
+export async function fetchHistoryPage(filters: {
+  types: HistoryRecordType[];
+  search: string;
+  startDate?: string;
+  endDate?: string;
+  taskStatus?: HistoryTaskStatus;
+  limit?: number;
+  skip: number;
+}): Promise<HistoryPageResult> {
+  const response = await api.get('/history', {
+    params: {
+      ...filters,
+      types: filters.types.join(','),
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+      taskStatus: filters.taskStatus || undefined,
+      limit: filters.limit ?? 30,
+    },
+  });
+  const result = response.data as HistoryPageResult;
+  if (
+    !Array.isArray(result?.events) ||
+    typeof result.hasMore !== 'boolean' ||
+    !Number.isInteger(result.nextSkip) ||
+    result.events.some(event =>
+      typeof event.id !== 'string' ||
+      typeof event.date !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(event.date) ||
+      typeof event.title !== 'string'
+    )
+  ) {
+    throw new Error('History response was incomplete.');
+  }
+  return result;
 }
 
 export async function fetchRealitySummary(date?: string): Promise<RealitySummary> {
@@ -178,9 +269,14 @@ export async function fetchProfile(): Promise<UserProfile> {
   return response.data.user;
 }
 
-export async function updateProfile(profile: UserProfile): Promise<UserProfile> {
+export async function updateProfile(profile: Pick<UserProfile, 'name' | 'email'>): Promise<UserProfile> {
   const response = await api.put('/auth/profile', profile);
   return response.data.user;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<PasswordChangeResponse> {
+  const response = await api.post('/auth/change-password', { currentPassword, newPassword });
+  return response.data;
 }
 
 export async function deleteProfile(): Promise<void> {
@@ -190,11 +286,8 @@ export async function deleteProfile(): Promise<void> {
 export async function uploadAvatar(file: File): Promise<UserProfile> {
   const formData = new FormData();
   formData.append('avatar', file);
-  
   const response = await api.post('/auth/avatar', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data.user;
 }

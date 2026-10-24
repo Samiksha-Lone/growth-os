@@ -1,12 +1,15 @@
 import express from 'express';
 import { AnalyticsController } from '../controllers/analyticsController';
 import auth from '../middleware/auth';
-import { cacheShort, cacheMedium } from '../middleware/cache';
+import { cacheShort, cacheMedium, noCache } from '../middleware/cache';
 
 const router = express.Router();
 
 // All analytics routes require authentication
 router.use(auth);
+
+// GET /api/analytics/report?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+router.get('/report', noCache, AnalyticsController.getProductivityReport);
 
 // GET /api/analytics/daily-completion (cached 5 min)
 router.get('/daily-completion', cacheShort, AnalyticsController.getDailyCompletionRate);

@@ -5,8 +5,11 @@ export interface ITask extends Document {
   description?: string;
   category: 'Work' | 'Study' | 'Health' | 'Personal';
   priority: 'High' | 'Medium' | 'Low';
+  priorityClassification: 'urgent-important' | 'important-not-urgent' | 'urgent-not-important' | 'neither';
   status: 'Pending' | 'In Progress' | 'Completed' | 'Missed';
   date: Date;
+  dueDate?: Date;
+  estimatedDurationMinutes?: number;
   notes?: string;
   userId: mongoose.Types.ObjectId;
   startTime?: string;
@@ -34,6 +37,11 @@ const taskSchema = new Schema<ITask>({
     enum: ['High', 'Medium', 'Low'],
     required: true,
   },
+  priorityClassification: {
+    type: String,
+    enum: ['urgent-important', 'important-not-urgent', 'urgent-not-important', 'neither'],
+    default: 'important-not-urgent',
+  },
   status: {
     type: String,
     enum: ['Pending', 'In Progress', 'Completed', 'Missed'],
@@ -42,6 +50,14 @@ const taskSchema = new Schema<ITask>({
   date: {
     type: Date,
     required: true,
+  },
+  dueDate: {
+    type: Date,
+  },
+  estimatedDurationMinutes: {
+    type: Number,
+    min: 1,
+    max: 1440,
   },
   notes: {
     type: String,

@@ -8,6 +8,9 @@ export class TaskService {
     if (typeof payload.startTime === 'string' && !payload.startTime.trim()) {
       delete payload.startTime;
     }
+    if (payload.dueDate) {
+      payload.dueDate = parseLocalDate(payload.dueDate);
+    }
     const task = new Task(payload);
     return task.save();
   }
@@ -38,6 +41,9 @@ export class TaskService {
     const normalizedUpdates = { ...updates } as Partial<ITask>;
     if (updates.date) {
       normalizedUpdates.date = parseLocalDate(updates.date);
+    }
+    if (updates.dueDate) {
+      normalizedUpdates.dueDate = parseLocalDate(updates.dueDate);
     }
     return Task.findOneAndUpdate(
       { _id: taskId, userId },

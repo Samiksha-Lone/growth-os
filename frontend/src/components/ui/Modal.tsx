@@ -30,14 +30,14 @@ export function Modal({ open, title, onClose, children, className = '' }: ModalP
   if (!open) return null;
 
   return (
-    <div className="modal-overlay animate-fade-in" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="modal-overlay animate-fade-in" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div 
         className={`modal-panel animate-slide-up ${className}`} 
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{title}</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">
+          <h2 id="modal-title">{title}</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close modal">
             <FiX size={20} strokeWidth={2.5} />
           </button>
         </div>

@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
+import { ConfirmProvider } from './ConfirmProvider';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export function AppShell() {
@@ -9,6 +10,7 @@ export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
+    <ConfirmProvider>
     <div className="app-shell">
       {/* Mobile Backdrop Overlay */}
       {sidebarOpen && (
@@ -43,5 +45,6 @@ export function AppShell() {
         </main>
       </div>
     </div>
+    </ConfirmProvider>
   );
 }
