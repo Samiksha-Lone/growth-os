@@ -77,7 +77,9 @@ function EventContent({ event }: { event: HistoryEvent }) {
               </span>
             )}
             {event.mood !== undefined && event.mood !== null && (
-              <span className="text-xs font-semibold text-accent">Recorded mood: {event.mood} / 3</span>
+              <span className="text-xs font-semibold text-accent">
+                Recorded mood: {event.mood}{event.mood > 3 ? ' / 10 (legacy)' : ' / 3'}
+              </span>
             )}
           </div>
           <h3 className="break-words text-sm font-bold text-white sm:text-base">{event.title}</h3>

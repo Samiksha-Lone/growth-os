@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -19,6 +18,7 @@ import realityCheckRoutes from './routes/realityCheck';
 import dashboardRoutes from './routes/dashboard';
 import historyRoutes from './routes/history';
 import { errorHandler } from './middleware/errorHandler';
+import { validateJwtSecret } from './config/environment';
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
@@ -70,18 +70,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serve static files from the uploads directory with explicit CORS headers
-const uploadsDir = path.join(process.cwd(), 'uploads');
-const avatarsDir = path.join(uploadsDir, 'avatars');
-if (!fs.existsSync(avatarsDir)) {
-  fs.mkdirSync(avatarsDir, { recursive: true });
-}
-app.use('/uploads', (req, res, next) => {
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  next();
-}, express.static(uploadsDir));
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -98,6 +86,13 @@ app.use('/api/reality-check', realityCheckRoutes);
 app.use(errorHandler);
 
 const startServer = async (): Promise<void> => {
+  try {
+    validateJwtSecret();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : 'JWT_SECRET configuration is invalid.');
+    process.exit(1);
+  }
+
   await connectDB();
   initializeJobScheduler();
 

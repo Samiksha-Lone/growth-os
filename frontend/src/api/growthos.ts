@@ -157,8 +157,7 @@ export async function fetchProductivityReport(startDate: string, endDate: string
     !Array.isArray(report.habits?.daily) ||
     !Array.isArray(report.habits?.performance) ||
     !Array.isArray(report.categories) ||
-    !Array.isArray(report.goals?.items) ||
-    !Array.isArray(report.journal?.items)
+    !Array.isArray(report.journal?.moods)
   ) {
     throw new Error('Insights report response was incomplete.');
   }
@@ -281,13 +280,4 @@ export async function changePassword(currentPassword: string, newPassword: strin
 
 export async function deleteProfile(): Promise<void> {
   await api.delete('/auth/profile');
-}
-
-export async function uploadAvatar(file: File): Promise<UserProfile> {
-  const formData = new FormData();
-  formData.append('avatar', file);
-  const response = await api.post('/auth/avatar', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data.user;
 }

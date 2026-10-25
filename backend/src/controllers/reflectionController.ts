@@ -20,7 +20,7 @@ const updateReflectionSchema = Joi.object({
   badThings: Joi.array().items(Joi.string()),
   learnings: Joi.array().items(Joi.string()),
   notes: Joi.string().max(10000).allow(''),
-  mood: Joi.number().min(1).max(3).allow(null),
+  mood: Joi.number().min(1).max(10).allow(null),
   productivityScore: Joi.number().min(1).max(10),
 });
 

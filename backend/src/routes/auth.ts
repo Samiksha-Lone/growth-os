@@ -1,50 +1,35 @@
 import express from 'express';
 import { AuthController } from '../controllers/authController';
 import auth from '../middleware/auth';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { createAuthRateLimit } from '../middleware/authRateLimit';
 
 const router = express.Router();
-
-const avatarsDirectory = path.resolve(process.cwd(), 'uploads', 'avatars');
-if (!fs.existsSync(avatarsDirectory)) {
-  fs.mkdirSync(avatarsDirectory, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, avatarsDirectory);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+const loginRateLimit = createAuthRateLimit({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many sign-in attempts. Please try again later.',
 });
-
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 1024 * 1024 }, // Limit to 1MB
-  fileFilter: (req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-    const supportedFormats: Record<string, string[]> = {
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'image/webp': ['.webp'],
-    };
-    if (supportedFormats[file.mimetype]?.includes(extension)) {
-      cb(null, true);
-    } else {
-      cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', file.fieldname));
-    }
-  }
+const registrationRateLimit = createAuthRateLimit({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many registration attempts. Please try again later.',
+});
+const passwordChangeRateLimit = createAuthRateLimit({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many password change attempts. Please try again later.',
+});
+const accountDeletionRateLimit = createAuthRateLimit({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 3,
+  message: 'Too many account deletion attempts. Please try again later.',
 });
 
 // POST /api/auth/register
-router.post('/register', AuthController.register);
+router.post('/register', registrationRateLimit, AuthController.register);
 
 // POST /api/auth/login
-router.post('/login', AuthController.login);
+router.post('/login', loginRateLimit, AuthController.login);
 
 // GET /api/auth/profile
 router.get('/profile', auth as any, AuthController.getProfile);
@@ -53,29 +38,9 @@ router.get('/profile', auth as any, AuthController.getProfile);
 router.put('/profile', auth as any, AuthController.updateProfile);
 
 // POST /api/auth/change-password
-router.post('/change-password', auth as any, AuthController.changePassword);
+router.post('/change-password', passwordChangeRateLimit, auth as any, AuthController.changePassword);
 
 // DELETE /api/auth/profile
-router.delete('/profile', auth as any, AuthController.deleteAccount);
-
-// POST /api/auth/avatar
-router.post('/avatar', auth as any, (req, res, next) => {
-  upload.single('avatar')(req, res, error => {
-    if (!error) {
-      next();
-      return;
-    }
-
-    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-      res.status(400).json({ message: 'Image must be 1 MB or smaller.' });
-      return;
-    }
-    if (error instanceof multer.MulterError && error.code === 'LIMIT_UNEXPECTED_FILE') {
-      res.status(400).json({ message: 'Choose a PNG, JPG, or WEBP image.' });
-      return;
-    }
-    next(error);
-  });
-}, AuthController.uploadAvatar);
+router.delete('/profile', accountDeletionRateLimit, auth as any, AuthController.deleteAccount);
 
 export default router;

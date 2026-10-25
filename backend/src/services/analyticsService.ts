@@ -64,14 +64,12 @@ export interface ProductivityReport {
     savedGoals: number;
     affirmations: number;
     createdInRange: number;
-    items: Array<{ id: string; text: string; type: 'goal' | 'affirmation'; createdAt: string }>;
     tracksCompletion: false;
   };
   journal: {
     entries: number;
     moodAverage: number | null;
     moods: Array<{ date: string; mood: number }>;
-    items: Array<{ date: string; mood: number | null; goodThings: string[]; badThings: string[]; learnings: string[]; notes?: string }>;
   };
 }
 
@@ -93,8 +91,9 @@ export class AnalyticsService {
     const [tasks, habits, goals, reflections] = await Promise.all([
       Task.find({ userId: userObjectId, date: { $gte: start, $lt: endExclusive } }).lean(),
       Habit.find({ userId: userObjectId }).lean(),
-      Goal.find({ userId: userObjectId }).sort({ createdAt: -1 }).lean(),
+      Goal.find({ userId: userObjectId }).select('type createdAt').lean(),
       Reflection.find({ userId: userObjectId, date: { $gte: start, $lt: endExclusive } })
+        .select('date mood')
         .sort({ date: -1 })
         .lean(),
     ]);
@@ -241,12 +240,6 @@ export class AnalyticsService {
       })
     ).length;
 
-    const goalItems = goals.map(goal => ({
-      id: goal._id.toString(),
-      text: goal.text,
-      type: goal.type,
-      createdAt: goal.createdAt.toISOString(),
-    }));
     const moodItems = reflections.flatMap(reflection => {
       const mood = normalizeMoodScore(reflection.mood);
       return mood === null ? [] : [{ date: localDateKey(reflection.date), mood }];
@@ -294,21 +287,12 @@ export class AnalyticsService {
           const createdKey = localDateKey(goal.createdAt);
           return createdKey >= startKey && createdKey <= endKey;
         }).length,
-        items: goalItems,
         tracksCompletion: false,
       },
       journal: {
         entries: reflections.length,
         moodAverage,
         moods: moodItems.sort((left, right) => left.date.localeCompare(right.date)),
-        items: reflections.map(reflection => ({
-          date: localDateKey(reflection.date),
-          mood: normalizeMoodScore(reflection.mood),
-          goodThings: reflection.goodThings ?? [],
-          badThings: reflection.badThings ?? [],
-          learnings: reflection.learnings ?? [],
-          notes: reflection.notes,
-        })),
       },
     };
   }
@@ -383,15 +367,17 @@ export class AnalyticsService {
   }
 
   static async getWeeklyStats(userId: string, startDate: Date): Promise<any> {
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 7);
+    const { startOfDay, endOfDay } = buildDateRange(startDate);
+    const endDate = new Date(endOfDay);
+    endDate.setDate(endDate.getDate() + 6);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Use aggregation pipeline for better performance
     const result = await Task.aggregate([
       {
         $match: {
-          userId: { $eq: userId },
-          date: { $gte: startDate, $lt: endDate },
+          userId: userObjectId,
+          date: { $gte: startOfDay, $lt: endDate },
         },
       },
       {
@@ -415,9 +401,41 @@ export class AnalyticsService {
     const completionRate = calculateCompletionRate(stats.completedTasks, stats.totalTasks);
 
     // Get habit stats
-    const habits = await Habit.find({ userId });
-    const habitCompletionRate = habits.length > 0
-      ? habits.reduce((acc, habit) => acc + (habit.completedDates.length / 7 * 100), 0) / habits.length
+    const habits = await Habit.find({ userId }).lean();
+    const weekStartKey = localDateKey(startOfDay);
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const habitEndExclusive = endDate < tomorrow ? endDate : tomorrow;
+    const weekEndKey = localDateKey(habitEndExclusive);
+    let eligibleHabitDays = 0;
+    let completedHabitDays = 0;
+
+    habits.forEach(habit => {
+      const createdDate = normalizeDateValue(habit.createdAt);
+      const eligibleStartKey = createdDate && localDateKey(createdDate) > weekStartKey
+        ? localDateKey(createdDate)
+        : weekStartKey;
+      const eligibleDates = new Set<string>();
+      const cursor = new Date(startOfDay);
+      while (localDateKey(cursor) < weekEndKey) {
+        const key = localDateKey(cursor);
+        if (key >= eligibleStartKey) eligibleDates.add(key);
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      const completedDates = new Set(
+        (Array.isArray(habit.completedDates) ? habit.completedDates : [])
+          .map(date => normalizeDateValue(date))
+          .filter((date): date is Date => date !== null)
+          .map(date => localDateKey(date))
+          .filter(date => eligibleDates.has(date))
+      );
+      eligibleHabitDays += eligibleDates.size;
+      completedHabitDays += completedDates.size;
+    });
+    const habitCompletionRate = eligibleHabitDays
+      ? Math.round(completedHabitDays / eligibleHabitDays * 100)
       : 0;
 
     return {
@@ -431,12 +449,13 @@ export class AnalyticsService {
   static async getMonthlyStats(userId: string, month: number, year: number): Promise<any> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Use aggregation pipeline
     const result = await Task.aggregate([
       {
         $match: {
-          userId: { $eq: userId },
+          userId: userObjectId,
           date: { $gte: startDate, $lt: endDate },
         },
       },

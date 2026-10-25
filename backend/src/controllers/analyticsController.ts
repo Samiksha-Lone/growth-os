@@ -62,7 +62,17 @@ export class AnalyticsController {
 
   static async getWeeklyStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date();
+      const startValue = req.query.startDate;
+      const startDate = startValue === undefined
+        ? parseLocalDate(undefined)
+        : typeof startValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startValue)
+          ? parseLocalDate(startValue)
+          : null;
+      if (!startDate || (typeof startValue === 'string' && localDateKey(startDate) !== startValue)) {
+        res.status(400).json({ message: 'Enter a valid week start date.' });
+        return;
+      }
+
       const stats = await AnalyticsService.getWeeklyStats(req.user._id, startDate);
 
       res.json({ stats });
@@ -73,8 +83,14 @@ export class AnalyticsController {
 
   static async getMonthlyStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const month = parseInt(req.params.month as string);
-      const year = parseInt(req.params.year as string);
+      const monthValue = req.params.month as string;
+      const yearValue = req.params.year as string;
+      if (!/^(?:[1-9]|1[0-2])$/.test(monthValue) || !/^\d{4}$/.test(yearValue)) {
+        res.status(400).json({ message: 'Enter a valid month and year.' });
+        return;
+      }
+      const month = Number(monthValue);
+      const year = Number(yearValue);
       const stats = await AnalyticsService.getMonthlyStats(req.user._id, month, year);
 
       res.json({ stats });

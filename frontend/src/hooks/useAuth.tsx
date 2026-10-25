@@ -1,5 +1,11 @@
 import { createContext, useContext, useMemo, useEffect, useState } from 'react';
 import api from '../api/axios';
+import {
+  beginAuthenticatedSession,
+  clearUserQueryCache,
+  endAuthenticatedSession,
+  registerAuthInvalidationHandler,
+} from '../api/authSession';
 
 interface AuthContextValue {
   token: string | null;
@@ -8,7 +14,6 @@ interface AuthContextValue {
   githubUrl: string | null;
   linkedinUrl: string | null;
   portfolioUrl: string | null;
-  avatarUrl: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -22,7 +27,6 @@ const AuthContext = createContext<AuthContextValue>({
   githubUrl: null,
   linkedinUrl: null,
   portfolioUrl: null,
-  avatarUrl: null,
   signIn: async () => {},
   signUp: async () => {},
   signOut: () => {},
@@ -36,7 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [githubUrl, setGithubUrl] = useState<string | null>(() => localStorage.getItem('growthos_github'));
   const [linkedinUrl, setLinkedinUrl] = useState<string | null>(() => localStorage.getItem('growthos_linkedin'));
   const [portfolioUrl, setPortfolioUrl] = useState<string | null>(() => localStorage.getItem('growthos_portfolio'));
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => localStorage.getItem('growthos_avatar'));
+
+  useEffect(() => {
+    localStorage.removeItem('growthos_avatar');
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -74,10 +81,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else localStorage.removeItem('growthos_portfolio');
   }, [portfolioUrl]);
 
+  useEffect(() => registerAuthInvalidationHandler(() => {
+    setToken(null);
+    setUserEmail(null);
+    setUserName(null);
+    setGithubUrl(null);
+    setLinkedinUrl(null);
+    setPortfolioUrl(null);
+  }), []);
+
   useEffect(() => {
-    if (avatarUrl) localStorage.setItem('growthos_avatar', avatarUrl);
-    else localStorage.removeItem('growthos_avatar');
-  }, [avatarUrl]);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'growthos_token') return;
+      clearUserQueryCache();
+      setToken(event.newValue);
+      setUserEmail(null);
+      setUserName(null);
+      setGithubUrl(null);
+      setLinkedinUrl(null);
+      setPortfolioUrl(null);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   useEffect(() => {
     const syncProfile = async () => {
@@ -91,7 +118,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setGithubUrl(user.githubUrl || null);
             setLinkedinUrl(user.linkedinUrl || null);
             setPortfolioUrl(user.portfolioUrl || null);
-            setAvatarUrl(user.avatarUrl || null);
           }
         } catch (error) {
           console.error('Profile sync failed:', error);
@@ -110,13 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Authentication failed');
     }
 
+    beginAuthenticatedSession(accessToken);
     setToken(accessToken);
     setUserEmail(user.email);
     setUserName(user.name);
     setGithubUrl(user.githubUrl || null);
     setLinkedinUrl(user.linkedinUrl || null);
     setPortfolioUrl(user.portfolioUrl || null);
-    setAvatarUrl(user.avatarUrl || null);
   };
 
   const signUp = async (name: string, email: string, password: string) => {
@@ -128,38 +154,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Registration failed');
     }
 
+    beginAuthenticatedSession(accessToken);
     setToken(accessToken);
     setUserEmail(user.email);
     setUserName(user.name);
     setGithubUrl(user.githubUrl || null);
     setLinkedinUrl(user.linkedinUrl || null);
     setPortfolioUrl(user.portfolioUrl || null);
-    setAvatarUrl(user.avatarUrl || null);
   };
 
   const signOut = () => {
+    endAuthenticatedSession();
     setToken(null);
     setUserEmail(null);
     setUserName(null);
     setGithubUrl(null);
     setLinkedinUrl(null);
     setPortfolioUrl(null);
-    setAvatarUrl(null);
   };
 
   const updateUser = (updates: Partial<AuthContextValue>) => {
-    if (updates.token !== undefined) setToken(updates.token);
+    if (updates.token !== undefined && updates.token !== token) {
+      if (updates.token) beginAuthenticatedSession(updates.token);
+      else endAuthenticatedSession();
+      setToken(updates.token);
+    }
     if (updates.userName) setUserName(updates.userName);
     if (updates.userEmail) setUserEmail(updates.userEmail);
     if (updates.githubUrl !== undefined) setGithubUrl(updates.githubUrl);
     if (updates.linkedinUrl !== undefined) setLinkedinUrl(updates.linkedinUrl);
     if (updates.portfolioUrl !== undefined) setPortfolioUrl(updates.portfolioUrl);
-    if (updates.avatarUrl !== undefined) setAvatarUrl(updates.avatarUrl);
   };
 
   const value = useMemo(
-    () => ({ token, userEmail, userName, githubUrl, linkedinUrl, portfolioUrl, avatarUrl, signIn, signUp, signOut, updateUser }),
-    [token, userEmail, userName, githubUrl, linkedinUrl, portfolioUrl, avatarUrl]
+    () => ({ token, userEmail, userName, githubUrl, linkedinUrl, portfolioUrl, signIn, signUp, signOut, updateUser }),
+    [token, userEmail, userName, githubUrl, linkedinUrl, portfolioUrl]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

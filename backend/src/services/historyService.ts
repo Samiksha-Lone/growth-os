@@ -57,6 +57,12 @@ function eventCompare(left: HistoryEvent, right: HistoryEvent): number {
     left.id.localeCompare(right.id);
 }
 
+function validStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
 export class HistoryService {
   static async getHistory(userId: string, filters: HistoryFilters): Promise<{
     events: HistoryEvent[];
@@ -205,23 +211,26 @@ export class HistoryService {
 
     reflections.forEach(reflection => {
       const date = localDateKey(reflection.date);
-      const goodThings = reflection.goodThings ?? [];
-      const badThings = reflection.badThings ?? [];
-      const learnings = reflection.learnings ?? [];
+      const goodThings = validStringArray(reflection.goodThings);
+      const badThings = validStringArray(reflection.badThings);
+      const learnings = validStringArray(reflection.learnings);
+      const notes = typeof reflection.notes === 'string' ? reflection.notes : undefined;
       events.push({
         id: `journal:${reflection._id.toString()}`,
         type: 'journal',
         date,
         sortTimestamp: reflection.createdAt.getTime(),
         title: 'Journal entry',
-        detail: reflection.notes || goodThings[0] || learnings[0] || undefined,
+        detail: notes || goodThings[0] || learnings[0] || undefined,
         createdAt: reflection.createdAt.toISOString(),
         updatedAt: reflection.updatedAt.toISOString(),
-        mood: reflection.mood ?? null,
+        mood: typeof reflection.mood === 'number' && Number.isFinite(reflection.mood)
+          ? reflection.mood
+          : null,
         goodThings,
         badThings,
         learnings,
-        notes: reflection.notes,
+        notes,
       });
     });
 

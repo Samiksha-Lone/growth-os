@@ -20,7 +20,10 @@ export class HabitService {
         .map((d) => normalizeDateValue(d))
         .filter((d): d is Date => d !== null);
 
-      const normalizedDate = normalizeDateValue(date) ?? new Date();
+      const normalizedDate = normalizeDateValue(date);
+      if (!normalizedDate) {
+        throw new Error('Habit check-in date must be valid.');
+      }
       const dateKey = localDateKey(normalizedDate);
 
       const existingKeys = habit.completedDates.map((d) => localDateKey(d));

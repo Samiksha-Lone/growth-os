@@ -10,6 +10,10 @@ const createHabitSchema = Joi.object({
   name: Joi.string().required(),
 });
 
+const habitCheckInSchema = Joi.object({
+  date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+});
+
 export class HabitController {
   static async createHabit(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -33,7 +37,23 @@ export class HabitController {
 
   static async markHabitComplete(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const { error } = habitCheckInSchema.validate(req.body);
+      if (error) {
+        res.status(400).json({ message: 'Validation error', errors: ['Date must be a valid local calendar date'] });
+        return;
+      }
+
       const date = parseLocalDate(req.body.date);
+      const dateKey = localDateKey(date);
+      if (dateKey !== req.body.date) {
+        res.status(400).json({ message: 'Validation error', errors: ['Date must be a valid local calendar date'] });
+        return;
+      }
+      if (dateKey > localDateKey(new Date())) {
+        res.status(400).json({ message: 'Validation error', errors: ['Habit check-ins cannot be recorded for a future date'] });
+        return;
+      }
+
       const habit = await HabitService.markHabitComplete(req.params.id as string, req.user?._id, date);
 
       if (!habit) {

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
+import { getJwtSecret } from '../config/environment';
 
 export class HttpError extends Error {
   statusCode: number;
@@ -58,6 +59,6 @@ export class AuthService {
   }
 
   private static generateToken(userId: string, tokenVersion = 0): string {
-    return jwt.sign({ userId, tokenVersion }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+    return jwt.sign({ userId, tokenVersion }, getJwtSecret(), { expiresIn: '7d' });
   }
 }

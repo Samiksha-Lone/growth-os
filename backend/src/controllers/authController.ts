@@ -3,7 +3,6 @@ import { AuthService } from '../services/authService';
 import { AccountService } from '../services/accountService';
 import Joi from 'joi';
 import User from '../models/User';
-import fs from 'fs/promises';
 
 const registerSchema = Joi.object({
   name: Joi.string()
@@ -47,21 +46,9 @@ const profileUpdateSchema = Joi.object({
   githubUrl: Joi.string().allow('', null).optional(),
   linkedinUrl: Joi.string().allow('', null).optional(),
   portfolioUrl: Joi.string().allow('', null).optional(),
-  avatarUrl: Joi.string().allow('', null).optional(),
 });
 
 export class AuthController {
-  private static isSupportedAvatarContent(file: Buffer): boolean {
-    const isPng = file.length >= 8 &&
-      file.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-    const isJpeg = file.length >= 3 &&
-      file[0] === 0xff && file[1] === 0xd8 && file[2] === 0xff;
-    const isWebp = file.length >= 12 &&
-      file.toString('ascii', 0, 4) === 'RIFF' &&
-      file.toString('ascii', 8, 12) === 'WEBP';
-    return isPng || isJpeg || isWebp;
-  }
-
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { error } = registerSchema.validate(req.body);
@@ -121,58 +108,6 @@ export class AuthController {
     }
   }
 
-  static async uploadAvatar(req: any, res: Response, next: NextFunction): Promise<void> {
-    let uploadedFilePath: string | undefined;
-    let avatarSaved = false;
-    try {
-      if (!req.user || !req.user._id) {
-        res.status(401).json({ message: 'Unauthorized' });
-        return;
-      }
-      if (!req.file) {
-        res.status(400).json({ message: 'Choose a PNG, JPG, or WEBP image.' });
-        return;
-      }
-      uploadedFilePath = req.file.path;
-      const content = await fs.readFile(req.file.path);
-      if (!this.isSupportedAvatarContent(content)) {
-        res.status(400).json({ message: 'The selected file is not a valid PNG, JPG, or WEBP image.' });
-        return;
-      }
-
-      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-      
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user._id,
-        { $set: { avatarUrl } },
-        { new: true, runValidators: true }
-      ).select('-password');
-
-      if (!updatedUser) {
-        res.status(404).json({ message: 'User not found' });
-        return;
-      }
-      avatarSaved = true;
-
-      res.json({
-        message: 'Avatar uploaded successfully',
-        user: updatedUser
-      });
-    } catch (error: any) {
-      next(error);
-    } finally {
-      if (uploadedFilePath && !avatarSaved) {
-        try {
-          await fs.unlink(uploadedFilePath);
-        } catch (cleanupError) {
-          if ((cleanupError as NodeJS.ErrnoException).code !== 'ENOENT') {
-            console.error('[AVATAR UPLOAD] Failed to clean up rejected upload:', cleanupError);
-          }
-        }
-      }
-    }
-  }
-
   static async updateProfile(req: any, res: Response, next: NextFunction): Promise<void> {
     try {
       const { error } = profileUpdateSchema.validate(req.body);
@@ -186,14 +121,13 @@ export class AuthController {
         return;
       }
 
-      const { name, email, githubUrl, linkedinUrl, portfolioUrl, avatarUrl } = req.body;
+      const { name, email, githubUrl, linkedinUrl, portfolioUrl } = req.body;
       const updates: Record<string, unknown> = {};
       if (name !== undefined) updates.name = name;
       if (email !== undefined) updates.email = email;
       if (githubUrl !== undefined) updates.githubUrl = githubUrl;
       if (linkedinUrl !== undefined) updates.linkedinUrl = linkedinUrl;
       if (portfolioUrl !== undefined) updates.portfolioUrl = portfolioUrl;
-      if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
 
       const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
@@ -214,8 +148,7 @@ export class AuthController {
           email: updatedUser.email,
           githubUrl: updatedUser.githubUrl,
           linkedinUrl: updatedUser.linkedinUrl,
-          portfolioUrl: updatedUser.portfolioUrl,
-          avatarUrl: updatedUser.avatarUrl
+          portfolioUrl: updatedUser.portfolioUrl
         },
       });
     } catch (error: any) {

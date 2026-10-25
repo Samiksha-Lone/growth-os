@@ -162,7 +162,7 @@ export default function GoalsPage() {
 
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Card className="primary compact-card">
-          <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-300">Active Goals</span>
+          <span className="mb-2 block text-xs font-bold uppercase tracking-wider text-zinc-300">Saved Goals</span>
           {goalsQuery.isLoading ? <Skeleton height="38px" /> : goalsQuery.isError ? (
             <div role="alert" className="text-sm text-rose-300">Goal data unavailable.</div>
           ) : (

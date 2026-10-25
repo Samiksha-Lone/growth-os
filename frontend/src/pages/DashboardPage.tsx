@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
-import { fetchAllHabits, fetchAllTasks, fetchGoals, updateTask, markHabitComplete } from '../api/growthos';
+import { fetchDashboardStats, fetchGoals, fetchHabits, fetchTasks, updateTask, markHabitComplete } from '../api/growthos';
 import { dashboardStatsQueryKey, habitQueryKey, productivityReportQueryKey, taskQueryKey } from '../api/queryKeys';
 import { useAuth } from '../hooks/useAuth';
 import { localDateKey } from '../lib/dateUtils';
@@ -90,19 +90,28 @@ export default function DashboardPage() {
     return () => window.clearTimeout(timeoutId);
   }, [localDate]);
 
+  const dashboardStatsQuery = useQuery({
+    queryKey: dashboardStatsQueryKey(localDate),
+    queryFn: () => fetchDashboardStats(localDate),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
   const tasksQuery = useQuery<Task[]>({
-    queryKey: taskQueryKey(localDate, 100),
-    queryFn: () => fetchAllTasks(localDate),
-    staleTime: 0,
+    queryKey: taskQueryKey(localDate, 5),
+    queryFn: () => fetchTasks(localDate, 5),
+    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const habitsQuery = useQuery<Habit[]>({
-    queryKey: habitQueryKey(100),
-    queryFn: () => fetchAllHabits(),
-    staleTime: 0,
+    queryKey: habitQueryKey(5),
+    queryFn: () => fetchHabits(5),
+    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -129,18 +138,17 @@ export default function DashboardPage() {
     }), [tasksQuery.data]);
   const visibleTasks = todayTasks.slice(0, 5);
   const todayHabits = useMemo(() => habitsQuery.data?.slice(0, 5) ?? [], [habitsQuery.data]);
-  const completedTaskCount = tasksQuery.data?.filter(task => task.status === 'Completed').length ?? 0;
-  const completedHabitCount = habitsQuery.data?.filter(habit =>
-    habit.completedDateKeys?.includes(localDate) ||
-    habit.completedDates?.some(date => getCalendarDate(date) === localDate)
-  ).length ?? 0;
+  const completedTaskCount = dashboardStatsQuery.data?.tasksToday ?? 0;
+  const totalTaskCount = dashboardStatsQuery.data?.tasksTotal ?? tasksQuery.data?.length ?? 0;
+  const completedHabitCount = dashboardStatsQuery.data?.habitsDone ?? 0;
+  const totalHabitCount = dashboardStatsQuery.data?.habitsTotal ?? habitsQuery.data?.length ?? 0;
   const goalsCount = goalsQuery.data?.filter(goal => goal.type === 'goal').length ?? 0;
   const affirmationsCount = goalsQuery.data?.filter(goal => goal.type === 'affirmation').length ?? 0;
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Task> }) => updateTask(id, updates),
     onSuccess: async (updatedTask) => {
-      queryClient.setQueryData<Task[]>(taskQueryKey(localDate, 100), currentTasks =>
+      queryClient.setQueryData<Task[]>(taskQueryKey(localDate, 5), currentTasks =>
         currentTasks?.map(task => task._id === updatedTask._id ? updatedTask : task)
       );
       await Promise.all([
@@ -187,14 +195,14 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 md:gap-4">
         <Card className="primary p-4 sm:p-5 bg-[#0c0c0e]">
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-1">Tasks</span>
-          {tasksQuery.isLoading ? (
+          {dashboardStatsQuery.isLoading ? (
             <div className="mt-2"><Skeleton height="36px" /></div>
-          ) : tasksQuery.isError || !tasksQuery.data ? (
+          ) : dashboardStatsQuery.isError || !dashboardStatsQuery.data ? (
             <div className="mt-2 flex flex-col items-start gap-2">
               <p className="text-xs text-rose-300">Task counts unavailable.</p>
               <button
                 type="button"
-                onClick={() => tasksQuery.refetch()}
+                onClick={() => dashboardStatsQuery.refetch()}
                 className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white"
               >
                 Retry
@@ -203,7 +211,7 @@ export default function DashboardPage() {
           ) : (
             <>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-white">
-                {completedTaskCount} <span className="text-zinc-400 text-sm font-semibold">/ {tasksQuery.data.length}</span>
+                {completedTaskCount} <span className="text-zinc-400 text-sm font-semibold">/ {totalTaskCount}</span>
               </p>
               <p className="mt-1 text-xs text-zinc-400 font-medium">completed / planned for today</p>
             </>
@@ -212,14 +220,14 @@ export default function DashboardPage() {
 
         <Card className="primary p-4 sm:p-5 bg-[#0c0c0e]">
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-300 block mb-1">Habits due today</span>
-          {habitsQuery.isLoading ? (
+          {dashboardStatsQuery.isLoading ? (
             <div className="mt-2"><Skeleton height="36px" /></div>
-          ) : habitsQuery.isError || !habitsQuery.data ? (
+          ) : dashboardStatsQuery.isError || !dashboardStatsQuery.data ? (
             <div className="mt-2 flex flex-col items-start gap-2">
               <p className="text-xs text-rose-300">Habit counts unavailable.</p>
               <button
                 type="button"
-                onClick={() => habitsQuery.refetch()}
+                onClick={() => dashboardStatsQuery.refetch()}
                 className="text-[0.65rem] font-black text-accent uppercase tracking-widest hover:text-white"
               >
                 Retry
@@ -228,7 +236,7 @@ export default function DashboardPage() {
           ) : (
             <>
               <p className="mt-1 text-2xl sm:text-3xl font-black text-white">
-                {completedHabitCount} <span className="text-zinc-400 text-sm font-semibold">/ {habitsQuery.data.length}</span>
+                {completedHabitCount} <span className="text-zinc-400 text-sm font-semibold">/ {totalHabitCount}</span>
               </p>
               <p className="mt-1 text-xs text-zinc-400 font-medium">checked in / daily habits</p>
             </>

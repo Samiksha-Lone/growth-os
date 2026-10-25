@@ -161,14 +161,12 @@ export interface ProductivityReport {
     savedGoals: number;
     affirmations: number;
     createdInRange: number;
-    items: Array<{ id: string; text: string; type: 'goal' | 'affirmation'; createdAt: string }>;
     tracksCompletion: false;
   };
   journal: {
     entries: number;
     moodAverage: number | null;
     moods: Array<{ date: string; mood: number }>;
-    items: Array<{ date: string; mood: number | null; goodThings: string[]; badThings: string[]; learnings: string[]; notes?: string }>;
   };
 }
 
@@ -207,7 +205,6 @@ export interface UserProfile {
   githubUrl?: string;
   linkedinUrl?: string;
   portfolioUrl?: string;
-  avatarUrl?: string;
 }
 
 export interface PasswordChangeResponse {

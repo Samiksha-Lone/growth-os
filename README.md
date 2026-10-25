@@ -41,7 +41,7 @@ GrowthOS provides a centralized platform that consolidates all aspects of person
 | **Frontend** | React.js, Vite, Tailwind CSS, React Query, React Router |
 | **Backend** | Node.js, Express.js |
 | **Database** | MongoDB Atlas |
-| **Auth & Security** | JWT, bcryptjs, Helmet.js, express-rate-limit |
+| **Auth & Security** | JWT, bcryptjs, Helmet.js, IP-based authentication rate limits |
 | **Analytics** | Data aggregation, pattern analysis, trend visualization |
 | **Email** | Nodemailer (SMTP) |
 | **Deployment** | Vercel (frontend), Render (backend) |
@@ -68,7 +68,7 @@ User → React Frontend → Axios → Express API → MongoDB
 ## Setup
 
 ### Prerequisites
-Node.js 18+, npm, MongoDB Atlas account
+Node.js 20.19.0 or newer, npm, MongoDB Atlas account. The locked Mongoose 9.4.1 package requires Node.js 20.19.0 or newer.
 
 ### 1. Backend
 
@@ -82,11 +82,19 @@ Create a `.env` file:
 ```env
 PORT=5000
 MONGO_URI=mongodb+srv://<your-cluster>
-JWT_SECRET=your_secret_key
+JWT_SECRET=<random secret of at least 32 bytes>
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
 FRONTEND_URL=http://localhost:3000
 ```
+
+Generate a suitable local JWT secret with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Set `JWT_SECRET` before starting the backend. The server exits at startup with a non-sensitive configuration error if it is missing or shorter than 32 bytes. Use a separate random secret in each environment; never use the example placeholder literally.
 
 ```bash
 npm run dev   # http://localhost:5000
@@ -102,12 +110,18 @@ npm install
 Create a `.env.local` file:
 
 ```env
-VITE_API_BASE=http://localhost:5000/api
+VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
 ```bash
 npm run dev   # http://localhost:5173
 ```
+
+## Deployment configuration
+
+The frontend is a Vercel SPA and the Express API is deployed separately (the repository does not configure a Vercel API proxy). Set `VITE_API_BASE_URL` in the Vercel project to the actual absolute backend URL, optionally ending in `/api`; the frontend adds `/api` when it is omitted. The frontend raises a clear startup configuration error when the value is missing or not an absolute HTTP(S) URL, rather than silently sending API requests to the SPA rewrite. Keep the local development default unchanged.
+
+Authentication endpoints are throttled per connecting IP: login allows 10 requests per 15 minutes, registration 5 per hour, password changes 5 per 15 minutes, and account deletion 3 per 15 minutes. Limits are kept in process memory and use the direct socket address; this app does not trust forwarded IP headers by default. If deploying multiple backend instances behind a proxy, configure a shared rate-limit store and narrowly scoped trusted-proxy settings before relying on per-client limits.
 
 ## Screenshots
 

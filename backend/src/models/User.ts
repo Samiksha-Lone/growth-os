@@ -8,7 +8,6 @@ export interface IUser extends Document {
   githubUrl?: string;
   linkedinUrl?: string;
   portfolioUrl?: string;
-  avatarUrl?: string;
   tokenVersion: number;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -36,7 +35,6 @@ const userSchema = new Schema<IUser>({
   githubUrl: String,
   linkedinUrl: String,
   portfolioUrl: String,
-  avatarUrl: String,
   tokenVersion: {
     type: Number,
     default: 0,

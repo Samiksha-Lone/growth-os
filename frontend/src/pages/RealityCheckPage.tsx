@@ -165,7 +165,7 @@ export default function RealityCheckPage() {
               <p className="mx-auto mt-2 max-w-lg text-sm text-zinc-400">
                 There is no completion rate to judge. Use the Planner to decide what matters for your next day.
               </p>
-              <Link to="/planner" className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-accent px-4 text-sm font-bold text-white hover:bg-accent/90">
+              <Link to="/planner" className="mt-4 inline-flex min-h-10 self-center items-center rounded-lg bg-accent px-4 text-sm font-bold text-white hover:bg-accent/90">
                 Plan tasks
               </Link>
             </Card>
