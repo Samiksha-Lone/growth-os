@@ -20,19 +20,15 @@ const reflectionSchema = new Schema<IReflection>({
   },
   goodThings: [{
     type: String,
-    trim: true,
   }],
   badThings: [{
     type: String,
-    trim: true,
   }],
   learnings: [{
     type: String,
-    trim: true,
   }],
   notes: {
     type: String,
-    trim: true,
     default: '',
   },
   mood: {

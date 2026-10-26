@@ -69,6 +69,10 @@ function draftFromEntry(entry?: Reflection): JournalDraft {
   };
 }
 
+function storedText(value: string): string[] {
+  return value.length ? [value] : [];
+}
+
 function hasOptionalReflection(entry?: Reflection): boolean {
   return Boolean(
     entry?.goodThings?.some(Boolean) ||
@@ -78,8 +82,8 @@ function hasOptionalReflection(entry?: Reflection): boolean {
   );
 }
 
-function toLines(value: string): string[] {
-  return value.split('\n').map(line => line.trim()).filter(Boolean);
+function moodLabel(mood: number): string {
+  return moodOptions.find(option => option.value === mood)?.label ?? `Earlier mood (${mood})`;
 }
 
 export default function JournalPage() {
@@ -114,10 +118,10 @@ export default function JournalPage() {
 
   const activeEntry = entriesByDate.get(activeDate);
   const hasDraftContent = Boolean(
-    draft.goodThings.trim() ||
-    draft.badThings.trim() ||
-    draft.learnings.trim() ||
-    draft.notes.trim() ||
+    draft.goodThings.length ||
+    draft.badThings.length ||
+    draft.learnings.length ||
+    draft.notes.length ||
     draft.mood !== null
   );
 
@@ -392,9 +396,9 @@ export default function JournalPage() {
                     date: activeDate,
                     entryId: activeEntry?._id,
                     updates: {
-                      goodThings: toLines(draft.goodThings),
-                      badThings: toLines(draft.badThings),
-                      learnings: toLines(draft.learnings),
+                      goodThings: storedText(draft.goodThings),
+                      badThings: storedText(draft.badThings),
+                      learnings: storedText(draft.learnings),
                       notes: draft.notes,
                       ...(activeEntry && draft.mood === (activeEntry.mood ?? null) ? {} : { mood: draft.mood }),
                     },
@@ -431,11 +435,16 @@ export default function JournalPage() {
               data.map(entry => {
                 const entryDate = journalDateKey(entry.date);
                 const isSelected = entryDate === activeDate;
-                const preview = entry.notes?.trim()
-                  || entry.goodThings?.find(Boolean)
-                  || entry.badThings?.find(Boolean)
-                  || entry.learnings?.find(Boolean)
-                  || 'Journal entry';
+                const notes = entry.notes ?? '';
+                const goodThings = entry.goodThings?.join('\n') ?? '';
+                const badThings = entry.badThings?.join('\n') ?? '';
+                const learnings = entry.learnings?.join('\n') ?? '';
+                const preview = notes || goodThings || badThings || learnings || 'Journal entry';
+                const structuredFields = [
+                  { label: 'What felt good today?', value: goodThings },
+                  { label: 'What felt difficult?', value: badThings },
+                  { label: 'Anything you learned?', value: learnings },
+                ].filter(field => field.value.trim());
                 return (
                   <button
                     key={entry._id}
@@ -452,7 +461,16 @@ export default function JournalPage() {
                     <span className="block text-sm font-bold text-white">
                       {entryDate ? formatJournalDate(entryDate, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date unavailable'}
                     </span>
-                    <span className="mt-1 block break-words text-xs leading-relaxed text-zinc-400">{preview}</span>
+                    {entry.mood != null && (
+                      <span className="mt-1 block text-xs font-medium text-accent">{moodLabel(entry.mood)}</span>
+                    )}
+                    <span className="mt-1 line-clamp-3 block break-words whitespace-pre-wrap text-xs leading-relaxed text-zinc-400">{preview}</span>
+                    {structuredFields.map(field => (
+                      <span key={field.label} className="mt-2 block break-words text-xs leading-relaxed text-zinc-400">
+                        <span className="font-semibold text-zinc-300">{field.label}</span>
+                        <span className="mt-0.5 block whitespace-pre-wrap">{field.value}</span>
+                      </span>
+                    ))}
                   </button>
                 );
               })
