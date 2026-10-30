@@ -395,7 +395,7 @@ export default function PlannerPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           {quadrants.map(quadrant => <Skeleton key={quadrant.id} height="240px" />)}
         </div>
       ) : isError ? (
@@ -410,7 +410,7 @@ export default function PlannerPage() {
           </button>
         </Card>
       ) : (
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
           {quadrants.map(quadrant => {
             const tasks = tasksByQuadrant[quadrant.id];
             return (
@@ -454,19 +454,6 @@ export default function PlannerPage() {
                       return (
                         <li key={task._id} className="min-w-0 p-4 sm:p-5">
                           <div className="flex min-w-0 items-start gap-3">
-                            <button
-                              type="button"
-                              aria-label={task.status === 'Completed' ? `Reopen ${task.title}` : `Complete ${task.title}`}
-                              disabled={updateTaskMutation.isPending}
-                              onClick={() => toggleComplete(task)}
-                              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors focus:ring-2 focus:ring-accent disabled:opacity-50 ${
-                                task.status === 'Completed'
-                                  ? 'border-emerald-400 bg-emerald-500 text-white'
-                                  : 'border-zinc-500 hover:border-accent'
-                              }`}
-                            >
-                              {task.status === 'Completed' && <span aria-hidden="true" className="text-xs font-black">✓</span>}
-                            </button>
                             <div className="min-w-0 flex-1">
                               <h4 className={`break-words text-sm font-bold leading-relaxed ${task.status === 'Completed' ? 'text-zinc-500 line-through' : 'text-white'}`}>
                                 {task.title}
@@ -492,43 +479,60 @@ export default function PlannerPage() {
                                 )}
                               </div>
                               {task.notes && <p className="mt-2 break-words whitespace-pre-wrap text-xs text-zinc-500">{task.notes}</p>}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap gap-2">
                               {task.status === 'Pending' && (
                                 <button
                                   type="button"
                                   disabled={updateTaskMutation.isPending}
                                   onClick={() => updateTaskMutation.mutate({ id: task._id, updates: { status: 'In Progress' } })}
-                                  className="mt-3 min-h-9 rounded-lg border border-white/10 px-3 text-xs font-bold text-zinc-300 hover:bg-white/5 hover:text-white focus:ring-2 focus:ring-accent disabled:opacity-50"
+                                  className="min-h-9 rounded-lg border border-white/10 px-3 text-xs font-bold text-zinc-300 hover:bg-white/5 hover:text-white focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   Start task
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                aria-label={`${task.status === 'Completed' ? 'Reopen' : 'Mark complete'} ${task.title}`}
+                                disabled={updateTaskMutation.isPending}
+                                onClick={() => toggleComplete(task)}
+                                className={`min-h-9 rounded-lg border px-3 text-xs font-bold focus:ring-2 focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50 ${
+                                  task.status === 'Completed'
+                                    ? 'border-white/10 text-zinc-300 hover:bg-white/5 hover:text-white'
+                                    : 'border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/10'
+                                }`}
+                              >
+                                {task.status === 'Completed' ? 'Reopen' : 'Mark complete'}
+                              </button>
                             </div>
-                          </div>
-                          <div className="mt-3 flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openEditor(task)}
-                              className="min-h-9 rounded-lg border border-white/10 px-3 text-xs font-bold text-zinc-300 hover:bg-white/5 hover:text-white focus:ring-2 focus:ring-accent"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              disabled={deleteTaskMutation.isPending}
-                              onClick={() => {
-                                void confirm({
-                                  title: 'Delete task?',
-                                  message: `Delete "${task.title}"? This action cannot be undone.`,
-                                  confirmLabel: 'Delete task',
-                                  variant: 'danger',
-                                }).then(confirmed => {
-                                  if (confirmed) deleteTaskMutation.mutate(task._id);
-                                });
-                              }}
-                              className="min-h-9 rounded-lg border border-rose-500/20 px-3 text-xs font-bold text-rose-300 hover:bg-rose-500/10 focus:ring-2 focus:ring-rose-400 disabled:opacity-50"
-                            >
-                              Delete
-                            </button>
+                            <div className="ml-auto flex flex-wrap justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openEditor(task)}
+                                className="min-h-9 rounded-lg border border-white/10 px-3 text-xs font-bold text-zinc-300 hover:bg-white/5 hover:text-white focus:ring-2 focus:ring-accent"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deleteTaskMutation.isPending}
+                                onClick={() => {
+                                  void confirm({
+                                    title: 'Delete task?',
+                                    message: `Delete "${task.title}"? This action cannot be undone.`,
+                                    confirmLabel: 'Delete task',
+                                    variant: 'danger',
+                                  }).then(confirmed => {
+                                    if (confirmed) deleteTaskMutation.mutate(task._id);
+                                  });
+                                }}
+                                className="min-h-9 rounded-lg border border-rose-500/20 px-3 text-xs font-bold text-rose-300 hover:bg-rose-500/10 focus:ring-2 focus:ring-rose-400 disabled:opacity-50"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         </li>
                       );

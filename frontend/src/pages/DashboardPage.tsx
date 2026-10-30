@@ -50,16 +50,12 @@ function formatCalendarDate(value: string): string {
   });
 }
 
-function nextTaskStatus(status: Task['status']): Task['status'] {
-  if (status === 'Pending') return 'In Progress';
-  if (status === 'In Progress' || status === 'Missed') return 'Completed';
-  return 'Pending';
-}
-
-function taskActionLabel(status: Task['status']): string {
-  if (status === 'Pending') return 'Start';
-  if (status === 'In Progress' || status === 'Missed') return 'Complete';
-  return 'Reopen';
+function getTaskAction(status: Task['status']): { label: string; nextStatus: Task['status'] } | null {
+  if (status === 'Pending') return { label: 'Start', nextStatus: 'In Progress' };
+  if (status === 'In Progress' || status === 'Missed') {
+    return { label: 'Mark complete', nextStatus: 'Completed' };
+  }
+  return null;
 }
 
 function getGreeting(name: string | null): { text: string; sub: string } {
@@ -307,7 +303,7 @@ export default function DashboardPage() {
                 const isOverdue = task.status !== 'Completed' && task.dueDate
                   ? getCalendarDate(task.dueDate) < localDate
                   : false;
-                const nextStatus = nextTaskStatus(task.status);
+                const taskAction = getTaskAction(task.status);
 
                 return (
                 <div key={task._id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 md:py-3.5 px-2 md:px-3 border-b border-white/5 last:border-0 gap-3 rounded-lg hover:bg-white/[0.03] transition-colors">
@@ -341,17 +337,23 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={updateTaskMutation.isPending}
-                    onClick={(e) => {
-                      if (nextStatus === 'Completed') fireCelebration(e.clientX, e.clientY);
-                      updateTaskMutation.mutate({ id: task._id, updates: { status: nextStatus } });
-                    }}
-                    className="self-end sm:self-auto flex-shrink-0 rounded-lg border border-accent/30 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-                  >
-                    {taskActionLabel(task.status)}
-                  </button>
+                  {taskAction && (
+                    <button
+                      type="button"
+                      aria-label={`${taskAction.label} ${task.title}`}
+                      aria-busy={updateTaskMutation.isPending}
+                      disabled={updateTaskMutation.isPending}
+                      onClick={(e) => {
+                        if (taskAction.nextStatus === 'Completed') fireCelebration(e.clientX, e.clientY);
+                        updateTaskMutation.mutate({ id: task._id, updates: { status: taskAction.nextStatus } });
+                      }}
+                      className="self-end sm:self-auto flex-shrink-0 rounded-lg border border-accent/30 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {updateTaskMutation.isPending && updateTaskMutation.variables?.id === task._id
+                        ? 'Updating...'
+                        : taskAction.label}
+                    </button>
+                  )}
                 </div>
                 );
               })

@@ -200,7 +200,7 @@ export default function JournalPage() {
       queryClient.setQueryData<Reflection[]>(['reflections'], currentEntries =>
         currentEntries?.filter(entry => entry._id !== deletedId)
       );
-      loadEntry();
+      if (activeEntry?._id === deletedId) loadEntry();
       await queryClient.invalidateQueries({ queryKey: ['reflections'] });
       await queryClient.invalidateQueries({ queryKey: productivityReportQueryKey });
       await queryClient.resetQueries({ queryKey: ['history'] });
@@ -217,7 +217,7 @@ export default function JournalPage() {
 
   const selectEntry = async (entry: Reflection) => {
     const date = journalDateKey(entry.date);
-    if (!date) return;
+    if (!date || date === activeDate) return;
     if (isDirty && !await confirm({
       title: 'Discard unsaved changes?',
       message: 'Your latest journal edits have not been saved. Discard them and open this entry?',
@@ -239,15 +239,16 @@ export default function JournalPage() {
     loadEntry(entriesByDate.get(today));
   };
 
-  const removeActiveEntry = async () => {
-    if (!activeEntry || deleteMutation.isPending || saveMutation.isPending) return;
+  const removeEntry = async (entry: Reflection) => {
+    if (deleteMutation.isPending || saveMutation.isPending) return;
+    const discardsActiveEdits = activeEntry?._id === entry._id && isDirty;
     const confirmed = await confirm({
       title: 'Delete journal entry?',
-      message: `Delete the entry for ${formatJournalDate(activeEntry.date, { month: 'long', day: 'numeric', year: 'numeric' })}?${isDirty ? ' Your unsaved edits will also be discarded.' : ''} This action cannot be undone.`,
+      message: `Delete the entry for ${formatJournalDate(entry.date, { month: 'long', day: 'numeric', year: 'numeric' })}?${discardsActiveEdits ? ' Your unsaved edits will also be discarded.' : ''} This action cannot be undone.`,
       confirmLabel: 'Delete entry',
       variant: 'danger',
     });
-    if (confirmed) deleteMutation.mutate(activeEntry._id);
+    if (confirmed) deleteMutation.mutate(entry._id);
   };
 
   const saveLabel = saveMutation.isPending
@@ -383,7 +384,7 @@ export default function JournalPage() {
                   <Button
                     type="button"
                     disabled={saveMutation.isPending || deleteMutation.isPending}
-                    onClick={() => void removeActiveEntry()}
+                    onClick={() => void removeEntry(activeEntry)}
                     className="w-full !border !border-rose-500/30 !bg-rose-500/10 !px-5 !py-3 !text-rose-300 hover:!bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   >
                     {deleteMutation.isPending ? 'DELETING...' : 'DELETE ENTRY'}
@@ -446,32 +447,64 @@ export default function JournalPage() {
                   { label: 'Anything you learned?', value: learnings },
                 ].filter(field => field.value.trim());
                 return (
-                  <button
+                  <article
                     key={entry._id}
-                    type="button"
-                    disabled={saveMutation.isPending || deleteMutation.isPending}
-                    aria-current={isSelected ? 'date' : undefined}
-                    onClick={() => void selectEntry(entry)}
-                    className={`w-full min-w-0 rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:p-4 ${
+                    className={`w-full min-w-0 rounded-xl border p-3.5 transition-colors sm:p-4 ${
                       isSelected
                         ? 'border-accent/40 bg-accent/5'
                         : 'border-white/10 bg-[#0c0c0e] hover:border-white/20 hover:bg-[#141418]'
                     }`}
                   >
-                    <span className="block text-sm font-bold text-white">
-                      {entryDate ? formatJournalDate(entryDate, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date unavailable'}
-                    </span>
-                    {entry.mood != null && (
-                      <span className="mt-1 block text-xs font-medium text-accent">{moodLabel(entry.mood)}</span>
-                    )}
-                    <span className="mt-1 line-clamp-3 block break-words whitespace-pre-wrap text-xs leading-relaxed text-zinc-400">{preview}</span>
-                    {structuredFields.map(field => (
-                      <span key={field.label} className="mt-2 block break-words text-xs leading-relaxed text-zinc-400">
-                        <span className="font-semibold text-zinc-300">{field.label}</span>
-                        <span className="mt-0.5 block whitespace-pre-wrap">{field.value}</span>
-                      </span>
-                    ))}
-                  </button>
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                      <button
+                        type="button"
+                        disabled={saveMutation.isPending || deleteMutation.isPending}
+                        aria-current={isSelected ? 'date' : undefined}
+                        onClick={() => void selectEntry(entry)}
+                        className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed"
+                      >
+                        <span className="block text-sm font-bold text-white">
+                          {entryDate ? formatJournalDate(entryDate, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date unavailable'}
+                        </span>
+                        {entry.mood != null && (
+                          <span className="mt-1 block text-xs font-medium text-accent">{moodLabel(entry.mood)}</span>
+                        )}
+                      </button>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={isSelected || saveMutation.isPending || deleteMutation.isPending}
+                          onClick={() => void selectEntry(entry)}
+                          className="min-h-9 rounded-lg border border-white/10 px-3 text-xs font-bold text-zinc-300 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isSelected ? 'Currently editing' : 'Edit'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={saveMutation.isPending || deleteMutation.isPending}
+                          onClick={() => void removeEntry(entry)}
+                          className="min-h-9 rounded-lg border border-rose-500/20 px-3 text-xs font-bold text-rose-300 hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deleteMutation.isPending && deleteMutation.variables === entry._id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={saveMutation.isPending || deleteMutation.isPending}
+                      aria-label={`View journal entry for ${entryDate ? formatJournalDate(entryDate, { month: 'long', day: 'numeric', year: 'numeric' }) : 'unavailable date'}`}
+                      onClick={() => void selectEntry(entry)}
+                      className="mt-1 block w-full min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed"
+                    >
+                      <span className="mt-1 line-clamp-3 block break-words whitespace-pre-wrap text-xs leading-relaxed text-zinc-400">{preview}</span>
+                      {structuredFields.map(field => (
+                        <span key={field.label} className="mt-2 block break-words text-xs leading-relaxed text-zinc-400">
+                          <span className="font-semibold text-zinc-300">{field.label}</span>
+                          <span className="mt-0.5 block whitespace-pre-wrap">{field.value}</span>
+                        </span>
+                      ))}
+                    </button>
+                  </article>
                 );
               })
             )}
