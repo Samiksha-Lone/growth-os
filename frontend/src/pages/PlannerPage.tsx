@@ -8,7 +8,6 @@ import { Card } from '../components/ui/Card';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import toast from 'react-hot-toast';
 import { Skeleton } from '../components/ui/Skeleton';
-import { Modal } from '../components/ui/Modal';
 import type { EisenhowerQuadrant, Task } from '../lib/types';
 import type { RefObject } from 'react';
 
@@ -269,7 +268,14 @@ export default function PlannerPage() {
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Task> }) => updateTask(id, updates),
-    onSuccess: invalidateTaskViews,
+    onSuccess: async (_, variables) => {
+      await invalidateTaskViews();
+      if (editingTask?._id === variables.id) {
+        setEditingTask(null);
+        setEditDraft(null);
+        toast.success('Task updated');
+      }
+    },
     onError: () => toast.error("Couldn't update the task. Please try again."),
   });
 
@@ -309,21 +315,18 @@ export default function PlannerPage() {
   const openEditor = (task: Task) => {
     setEditingTask(task);
     setEditDraft(draftFromTask(task));
+    focusTitle();
   };
 
   const submitEdit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingTask || !editDraft?.title.trim() || updateTaskMutation.isPending) return;
-    updateTaskMutation.mutate(
-      { id: editingTask._id, updates: taskUpdates(editDraft) },
-      {
-        onSuccess: () => {
-          setEditingTask(null);
-          setEditDraft(null);
-          toast.success('Task updated');
-        },
-      }
-    );
+    updateTaskMutation.mutate({ id: editingTask._id, updates: taskUpdates(editDraft) });
+  };
+
+  const cancelEdit = () => {
+    setEditingTask(null);
+    setEditDraft(null);
   };
 
   const toggleComplete = (task: Task) => {
@@ -332,6 +335,11 @@ export default function PlannerPage() {
       updates: { status: task.status === 'Completed' ? 'Pending' : 'Completed' },
     });
   };
+
+  const taskFormDraft = editDraft ?? newTask;
+  const isTaskFormPending = editingTask
+    ? updateTaskMutation.isPending
+    : addTaskMutation.isPending;
 
   return (
     <div className="page-stack">
@@ -358,23 +366,39 @@ export default function PlannerPage() {
       <Card className="primary p-4 sm:p-6">
         <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-base font-bold text-white">Add a task</h2>
-            <p className="mt-1 text-sm text-zinc-400">Optional details can be left blank. New tasks are planned for {displayDate(selectedDate)}.</p>
+            <h2 className="text-base font-bold text-white">{editingTask ? 'Edit task' : 'Add a task'}</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              {editingTask
+                ? 'Update this task and its planned date.'
+                : `Optional details can be left blank. New tasks are planned for ${displayDate(selectedDate)}.`}
+            </p>
           </div>
         </div>
-        <form onSubmit={submitNewTask}>
+        <form onSubmit={editingTask ? submitEdit : submitNewTask}>
           <TaskFields
-            value={newTask}
-            onChange={setNewTask}
+            value={taskFormDraft}
+            onChange={next => editingTask ? setEditDraft(next) : setNewTask(next)}
+            showPlanDate={Boolean(editingTask)}
             titleInputRef={titleInputRef}
           />
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex flex-col-reverse justify-end gap-3 sm:flex-row">
+            {editingTask && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={cancelEdit}
+                disabled={isTaskFormPending}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+            )}
             <Button
               type="submit"
-              disabled={!newTask.title.trim() || addTaskMutation.isPending}
+              disabled={!taskFormDraft.title.trim() || isTaskFormPending}
               className="w-full !rounded-xl !bg-accent !px-7 !py-3 !text-xs !font-bold !text-white hover:!bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:!text-sm"
             >
-              {addTaskMutation.isPending ? 'SAVING...' : 'ADD TASK'}
+              {isTaskFormPending ? 'SAVING...' : editingTask ? 'UPDATE TASK' : 'ADD TASK'}
             </Button>
           </div>
         </form>
@@ -545,41 +569,6 @@ export default function PlannerPage() {
         </div>
       )}
 
-      <Modal
-        open={!!editingTask && !!editDraft}
-        onClose={() => {
-          setEditingTask(null);
-          setEditDraft(null);
-        }}
-        title="Edit Task"
-        className="!w-full !max-w-[640px]"
-      >
-        {editDraft && (
-          <form onSubmit={submitEdit} className="flex flex-col gap-5">
-            <TaskFields value={editDraft} onChange={setEditDraft} showPlanDate />
-            <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setEditingTask(null);
-                  setEditDraft(null);
-                }}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={!editDraft.title.trim() || updateTaskMutation.isPending}
-                className="w-full !bg-accent !px-5 !py-2.5 !text-white hover:!bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-              >
-                {updateTaskMutation.isPending ? 'SAVING...' : 'SAVE CHANGES'}
-              </Button>
-            </div>
-          </form>
-        )}
-      </Modal>
     </div>
   );
 }

@@ -38,7 +38,7 @@ const createTaskSchema = Joi.object({
 
 const updateTaskSchema = Joi.object({
   title: Joi.string(),
-  description: Joi.string(),
+  description: Joi.string().allow(''),
   category: Joi.string().valid('Work', 'Study', 'Health', 'Personal'),
   priority: Joi.string().valid('High', 'Medium', 'Low'),
   priorityClassification: Joi.string().valid(
